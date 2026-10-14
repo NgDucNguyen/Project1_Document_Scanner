@@ -1,0 +1,15 @@
+venv/
+__pycache__/
+.ipynb_checkpoints/
+.vscode/
+.DS_Store
+
+# Chặn dữ liệu và model nặng nhưng cho phép giữ lại file .gitkeep để hiển thị thư mục trên Git
+data/raw/*
+!data/raw/.gitkeep
+
+data/processed/*
+!data/processed/.gitkeep
+
+models/*
+!models/.gitkeep
