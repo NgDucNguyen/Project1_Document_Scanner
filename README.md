@@ -55,3 +55,15 @@ Sau khi đã kích hoạt môi trường ảo `(venv)`, tiến hành nâng cấp
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
+
+## Hướng dẫn chuẩn bị dữ liệu (Data Setup)
+
+Để đảm bảo các script Python chạy chính xác mà không bị lỗi thiếu đường dẫn, cấu trúc thư mục dữ liệu cục bộ (local data) cần được sắp xếp như sau trước khi thực thi:
+
+1. **Dữ liệu thô (Raw Data):**
+   - Tạo thư mục theo đường dẫn: `data/raw/subset_2k/`
+   - Đặt toàn bộ các file ảnh thô (đã tải từ Hugging Face) vào bên trong thư mục `subset_2k/`.
+   - Đặt file nhãn tọa độ `labels.csv` (nếu có) đi kèm chung trong thư mục `data/raw/subset_2k/`.
+
+2. **Dữ liệu sau xử lý (Processed Data):**
+   - Bạn không cần tạo thủ công thư mục này. Các script tiền xử lý (`preprocess.py`) sẽ tự động khởi tạo thư mục `data/processed/` để lưu trữ ảnh sạch đầu ra.
