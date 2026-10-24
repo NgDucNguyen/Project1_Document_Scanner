@@ -1,6 +1,6 @@
 # Phần 1 — Dữ liệu và kiểm tra nhãn
 
-Đã có bốn script để nạp metadata, kiểm tra dữ liệu, chia tập và vẽ nhãn. Xem [kết quả tuần 1](week1_report.md).
+Đã có bốn script để nạp metadata, kiểm tra dữ liệu, chia tập và vẽ nhãn. Xem [kết quả tuần 1](../week1_report.md).
 
 ## Đầu vào hiện có
 
@@ -53,4 +53,4 @@ Overlay hiện chọn cùng 10 trang trên 5 nền do dùng cùng seed trong m�
 
 Ảnh và CSV đầu ra giữ trên máy, không đưa lên GitHub. Các script ghi đè đầu ra cùng tên khi chạy lại. Giữ nguyên dữ liệu gốc trong `data/raw/`. Ảnh tiếng Việt tự chụp và ảnh không có giấy sẽ bổ sung sau.
 
-Xem [README gốc](../README.md) để chuẩn bị môi trường và bộ dữ liệu.
+Xem [README gốc](../../README.md) để chuẩn bị môi trường và bộ dữ liệu.

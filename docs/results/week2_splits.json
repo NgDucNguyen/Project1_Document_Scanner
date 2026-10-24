@@ -1,0 +1,51 @@
+{
+  "seed": 42,
+  "group_field": "model_name",
+  "splits": {
+    "test": {
+      "images": 4202,
+      "model_names": [
+        "letter003",
+        "paper002",
+        "patent005",
+        "tax001",
+        "tax005"
+      ]
+    },
+    "train": {
+      "images": 17495,
+      "model_names": [
+        "datasheet001",
+        "datasheet002",
+        "datasheet003",
+        "datasheet004",
+        "datasheet005",
+        "letter002",
+        "letter004",
+        "letter005",
+        "magazine001",
+        "magazine002",
+        "magazine003",
+        "magazine004",
+        "magazine005",
+        "paper001",
+        "paper003",
+        "paper004",
+        "paper005",
+        "patent001",
+        "patent004",
+        "tax003",
+        "tax004"
+      ]
+    },
+    "val": {
+      "images": 3192,
+      "model_names": [
+        "letter001",
+        "patent002",
+        "patent003",
+        "tax002"
+      ]
+    }
+  }
+}

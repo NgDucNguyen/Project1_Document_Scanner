@@ -1,0 +1,17 @@
+{
+  "version": "week2_v3",
+  "max_detection_size": 1000,
+  "canny_low": 20,
+  "canny_high": 60,
+  "kernel_size": 5,
+  "min_area_ratio": 0.05,
+  "max_area_ratio": 0.90,
+  "epsilon_ratios": [0.01, 0.02, 0.03, 0.04, 0.05],
+  "max_contours": 20,
+  "min_edge_length": 20,
+  "edge_distance": 3,
+  "min_edge_support": 0.25,
+  "blur_warning_threshold": 30.0,
+  "ambiguity_score_gap": 0.15,
+  "distinct_candidate_iou": 0.90
+}

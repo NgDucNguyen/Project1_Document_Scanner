@@ -1,0 +1,119 @@
+{
+  "run": {
+    "run_id": "20261024_161837_753214",
+    "started_at": "2026-10-24T16:18:37.819875",
+    "selection": "all",
+    "images_requested": 24889,
+    "workers": 4,
+    "python": "3.12.14",
+    "opencv": "5.0.0",
+    "numpy": "2.5.4",
+    "pandas": "3.1.0",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "processor": "AMD64 Family 25 Model 116 Stepping 1, AuthenticAMD",
+    "opencv_threads": 1,
+    "source_sha256": {
+      "__init__.py": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "detect.py": "4e550c59419d9ea290b1a22f4f910d9476ab3ebecbf127d38416da10bd3a2644",
+      "evaluate.py": "ab0ede01435a1aaf610be68442f9b36871aebf033e8d9e0e104e24a93829c117",
+      "geometry.py": "16e3e4814185b8c072966fa63a16325ccecf0f9959c0a500b228da3f3a1a320f",
+      "manual_scan.py": "4b7175ff1c1b0fc8c8f6a1f35cf2c75a4e324f04576d60317dbd83803dcfde7e",
+      "scan.py": "88382eec710d336b405c003becfb290367479e13f3ac21d2460e79f4a63892b8"
+    },
+    "manifest_sha256": "279531bb6d2ae1b77c4172c75f7a1e89f388aafe6a1ce2cefc5f544a13cb6354",
+    "config_sha256": "23371dfa78393c02d8133b6ff4abfdea53140aa6e0a41f4cc9f9f687ceb1e83f",
+    "test_scored": false,
+    "complete": true,
+    "finished_at": "2026-10-24T16:30:04.639790",
+    "wall_seconds": 686.7565481000056,
+    "images": 24889,
+    "scans_created": 18571,
+    "status_counts": {
+      "ok": 16890,
+      "no_candidate": 6318,
+      "uncertain": 1681
+    }
+  },
+  "development": {
+    "train": {
+      "images": 17495,
+      "iou_threshold": 0.9,
+      "detected": 13299,
+      "scans_created": 13299,
+      "passed": 11186,
+      "pass_rate": 0.6393826807659331,
+      "mean_iou": 0.6840398168238939,
+      "uncertain": 1247,
+      "passed_without_warning": 9963,
+      "accuracy_status_counts": {
+        "matched": 11186,
+        "no_document": 4196,
+        "low_iou_or_warp_failed": 2113
+      },
+      "detection_ms": {
+        "mean": 57.54685797078815,
+        "median": 55.84939999971539,
+        "p95": 86.79981999739537
+      },
+      "warp_ms": {
+        "mean": 4.349074246258663,
+        "median": 3.880599993863143,
+        "p95": 7.792020002671048
+      },
+      "total_ms": {
+        "mean": 109.08500827091514,
+        "median": 102.64890000689775,
+        "p95": 164.61408999020932
+      }
+    },
+    "val": {
+      "images": 3192,
+      "iou_threshold": 0.9,
+      "detected": 2237,
+      "scans_created": 2237,
+      "passed": 1931,
+      "pass_rate": 0.6049498746867168,
+      "mean_iou": 0.6520654753498052,
+      "uncertain": 178,
+      "passed_without_warning": 1759,
+      "accuracy_status_counts": {
+        "matched": 1931,
+        "no_document": 955,
+        "low_iou_or_warp_failed": 306
+      },
+      "detection_ms": {
+        "mean": 55.44572647233695,
+        "median": 52.92904999805614,
+        "p95": 85.0437499982945
+      },
+      "warp_ms": {
+        "mean": 3.873696557693856,
+        "median": 3.5029999999096617,
+        "p95": 6.725859994185155
+      },
+      "total_ms": {
+        "mean": 98.38002866547555,
+        "median": 92.0784999980242,
+        "p95": 142.92643499502447
+      }
+    }
+  },
+  "baseline_v1": {
+    "split": "val",
+    "images": 3192,
+    "iou_threshold": 0.9,
+    "detected": 1186,
+    "passed": 1178,
+    "detection_rate": 0.37155388471177947,
+    "pass_rate": 0.36904761904761907,
+    "mean_iou": 0.3626893790848618,
+    "mean_detection_ms": 5.378059962330232,
+    "status_counts": {
+      "no_document": 2006,
+      "matched": 1178,
+      "low_iou": 8
+    }
+  },
+  "test_accuracy": null,
+  "test_policy": "inference only, no accuracy scored"
+}

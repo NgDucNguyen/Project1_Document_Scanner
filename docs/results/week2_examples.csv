@@ -1,0 +1,11 @@
+example,image_path,split,iou,passed,status,warnings,accuracy_status,overlay_legend
+01_good,background02/tax002/frame_0089.jpeg,val,0.9611992724456063,True,ok,,matched,green=ground_truth; red=prediction
+02_good,background03/patent003/frame_0080.jpeg,val,0.9864047610151883,True,ok,,matched,green=ground_truth; red=prediction
+03_good,background01/patent003/frame_0140.jpeg,val,0.9917818160985509,True,ok,,matched,green=ground_truth; red=prediction
+04_good,background03/tax002/frame_0100.jpeg,val,0.9828644688932396,True,ok,,matched,green=ground_truth; red=prediction
+05_good,background02/patent003/frame_0109.jpeg,val,0.961317858716178,True,ok,,matched,green=ground_truth; red=prediction
+06_failed,background01/tax002/frame_0014.jpeg,val,0.7615937902846284,False,ok,,low_iou_or_warp_failed,green=ground_truth; red=prediction
+07_failed,background02/patent003/frame_0093.jpeg,val,0.0,False,no_candidate,,no_document,green=ground_truth; red=prediction
+08_failed,background05/patent003/frame_0021.jpeg,val,0.0,False,ok,,low_iou_or_warp_failed,green=ground_truth; red=prediction
+09_failed,background05/letter001/frame_0076.jpeg,val,0.0,False,no_candidate,,no_document,green=ground_truth; red=prediction
+10_failed,background04/tax002/frame_0006.jpeg,val,0.0,False,no_candidate,,no_document,green=ground_truth; red=prediction

@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-25",
+  "run_id": "20261024_161837_753214",
+  "automatic_png": 18571,
+  "manual_png": 1,
+  "metadata_json": 24889,
+  "automatic_png_bytes": 3914920344,
+  "moved_png_sha256_verified_this_run": 13925,
+  "already_moved_png_decoded_on_resume": 4647,
+  "all_result_and_metadata_paths_verified": true,
+  "algorithm_rerun": false,
+  "processed_folder": "data/processed/scan/20261024_161837_753214",
+  "scan_path_base": "project",
+  "source_snapshot": "Preserved original code and hashes from 2026-10-24",
+  "evaluation_summary_unchanged": true,
+  "evaluation_with_examples_succeeded": true,
+  "unit_tests_passed": 8,
+  "temporary_migration_script_removed": true
+}

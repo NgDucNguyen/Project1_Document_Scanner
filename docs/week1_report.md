@@ -49,6 +49,6 @@ Cần bổ sung kiểm tra trực quan các trang chưa xem. Số frame lớn kh
 
 ## Đầu vào cho tuần 2
 
-Dùng ảnh gốc và `data/interim/manifest_with_split.csv` để phát triển tìm góc và nắn ảnh. Dùng validation để chọn tham số; giữ test cho đánh giá cuối. So góc dự đoán với nhãn nguồn để đo chất lượng. Hướng dẫn tái tạo đầu ra nằm trong [phase1_data.md](phase1_data.md).
+Dùng ảnh gốc và `data/interim/manifest_with_split.csv` để phát triển tìm góc và nắn ảnh. Dùng validation để chọn tham số; giữ test cho đánh giá cuối. So góc dự đoán với nhãn nguồn để đo chất lượng. Hướng dẫn tái tạo đầu ra nằm trong [phase1_data.md](guides/phase1_data.md).
 
 Ảnh, dữ liệu gốc và CSV sinh ra chỉ lưu trên máy. Repository chứa code, hướng dẫn và báo cáo số liệu.

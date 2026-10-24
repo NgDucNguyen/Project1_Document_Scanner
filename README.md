@@ -1,146 +1,132 @@
 # Project 1 — Quét tài liệu và nhận dạng chữ tiếng Việt
 
-Dự án hướng tới ứng dụng nhận ảnh chụp một trang giấy, tìm bốn góc, nắn phối cảnh thành ảnh scan và nhận dạng chữ in tiếng Việt. Phạm vi ưu tiên là giấy phẳng, đủ bốn góc và bố cục một cột.
+**Sinh viên:** Nguyễn Đức Nguyên · MSSV 202416305 · Đại học Bách khoa Hà Nội.
 
-**Sinh viên:** Nguyễn Đức Nguyên · MSSV 202416305 · Đại học Bách khoa Hà Nội (HUST).
+Đầu vào là ảnh chụp một trang giấy. Tuần 1 chuẩn bị dữ liệu; tuần 2 đã có tìm bốn góc, nắn phối cảnh, sửa góc và xoay trang. OCR và làm rõ chữ thuộc các tuần tiếp theo.
 
-> **Trạng thái hiện tại:** Đã có bốn script tuần 1 để đọc SmartDoc, kiểm tra dữ liệu, chia tập và vẽ nhãn. Đã tạo manifest cho **24.889 ảnh hợp lệ** và 50 ảnh overlay trên máy phát triển. Thuật toán tự tìm góc, nắn ảnh, OCR và giao diện chưa triển khai. Xem [kết quả tuần 1](docs/week1_report.md).
+**Đọc kết quả:** [Báo cáo tuần 2](docs/week2_report.md) · [Hướng dẫn tuần 2](docs/guides/phase2_scanner.md) · [Nguồn dữ liệu và các thay đổi](docs/guides/data_sources.md) · [Tuần 1](docs/week1_report.md).
 
-## 1. Chuẩn bị môi trường
+## Mở nhanh kết quả hiện có
 
-Cần Python **3.12 (64-bit)**, `pip` và Git. VS Code là tùy chọn. Trên Windows, hãy kiểm tra `python --version` trong terminal; WindowsApps alias không thay thế một bản Python hoạt động.
+**Đã chạy đủ 24.889 ảnh ngày 24/10/2026.** Không cần chạy lại để xem kết quả.
 
-Mở terminal tại thư mục gốc repository (nơi có `requirements.txt`). Trong PowerShell:
+- [Ảnh scan đã tạo](data/processed/scan/20261024_161837_753214/): 18.571 PNG; 6.318 ảnh còn lại không tìm được khung, đã ghi nhận trong CSV/JSON.
+- [Ảnh đã sửa góc bằng tay](data/processed/manual/corrected_example/): một ảnh minh họa, lưu riêng với ảnh tự động.
+- [10 ca minh họa](artifacts/week2/batch/20261024_161837_753214/examples/): trích từ lần chạy đầy đủ để xem các bước và lỗi.
+- [Báo cáo Word](artifacts/week2/report/Bao_cao_tuan_2.docx) và [báo cáo Markdown](docs/week2_report.md).
+- [Giải thích từng thư mục kết quả](artifacts/week2/README.md) và [mục lục tài liệu](docs/README.md).
+
+## 1. Cài đặt
+
+Chạy từ thư mục gốc dự án. Dùng **Python 3.12 64-bit** và terminal PowerShell:
 
 ```powershell
-python --version
 python -m venv venv
 .\venv\Scripts\python.exe -m pip install -r requirements.txt
-.\venv\Scripts\python.exe -c "import cv2, numpy, pandas, matplotlib; print('Môi trường cơ bản OK')"
+.\venv\Scripts\Activate.ps1
+python -m pip check
 ```
 
-Có thể kích hoạt bằng `.\venv\Scripts\Activate.ps1` rồi dùng `python`. Gọi trực tiếp `venv\Scripts\python.exe` như trên không cần đổi execution policy.
+Nếu PowerShell không cho kích hoạt, thay `python` trong các lệnh bên dưới bằng `.\venv\Scripts\python.exe`. Với Git Bash dùng `source venv/Scripts/activate`. Không sao chép venv từ máy khác. Không cần gõ `python3`.
 
-Trên macOS/Linux:
+`requirements.txt` khóa ba thư viện đang dùng trong tuần 1–2. Đây là bộ quét OpenCV, chưa cần tải model, GPU hoặc thư viện OCR. Các thư viện cũ đã cài trong venv có thể còn, nhưng không cần để chạy bộ quét.
 
-```bash
-python3.12 -m venv venv
-./venv/bin/python -m pip install -r requirements.txt
-./venv/bin/python -c "import cv2, numpy, pandas, matplotlib; print('Môi trường cơ bản OK')"
-```
+## 2. Chuẩn bị dữ liệu
 
-Nếu `venv` cũ báo không tìm thấy Python, hãy tạo lại nó bằng một bản Python đang hoạt động. Không chép `venv` giữa các máy: môi trường ảo lưu đường dẫn trình thông dịch của máy tạo ra nó. `requirements.txt` hiện chứa thư viện nền và một số thư viện dành cho các giai đoạn sau; bộ OCR sẽ được chọn và khóa phiên bản khi triển khai giai đoạn OCR.
+Nguồn hiện tại: [SmartDoc 2015 Challenge 1](https://github.com/jchazalon/smartdoc15-ch1-dataset). Ảnh và dữ liệu lớn không đưa lên GitHub.
 
-## 2. Dữ liệu SmartDoc
-
-Nguồn dữ liệu cho bài toán tìm khung giấy là [SmartDoc 2015 Challenge 1](https://github.com/jchazalon/smartdoc15-ch1-dataset). Dữ liệu không nằm trong Git. Máy phát triển hiện có **24.889 ảnh JPEG** và `frames_metadata.csv` tương ứng. Người clone repository phải tự tải bộ này nếu muốn chạy các bước xử lý ảnh sau này.
-
-```text
-data/
-├── raw/
-│   └── smartdoc/
-│       ├── frames_metadata.csv
-│       ├── background01/
-│       ├── background02/
-│       ├── background03/
-│       ├── background04/
-│       └── background05/
-├── interim/                 # Manifest, danh sách lỗi và kết quả chia tập
-└── processed/               # Dữ liệu dẫn xuất sẽ tạo
-```
-
-### Tải dữ liệu trên máy mới
-
-1. Vào [SmartDoc Releases](https://github.com/jchazalon/smartdoc15-ch1-dataset/releases), tải `frames.tar.gz` của bản `v2.0.0`. Gói `models.tar.gz` chưa cần cho phần 1.
-2. Giải nén `frames.tar.gz` vào `data/raw/smartdoc/`. Các thư mục `background01` đến `background05` và `metadata.csv.gz` phải nằm **trực tiếp** trong `smartdoc/`, không nằm trong một thư mục `frames` lồng bên trong.
-3. Giải nén `metadata.csv.gz` rồi đổi tên CSV thành `frames_metadata.csv`. Giữ nguyên ảnh gốc để có thể audit lại.
-4. Kiểm tra trong PowerShell:
+1. Tải `frames.tar.gz` tại [Releases](https://github.com/jchazalon/smartdoc15-ch1-dataset/releases), bản v2.0.0.
+2. Giải nén vào `data/raw/smartdoc/`, để `background01` đến `background05` nằm trực tiếp bên trong.
+3. Giải nén `metadata.csv.gz`, đổi tên CSV thành `frames_metadata.csv`.
+4. Chạy tuần 1 theo thứ tự:
 
 ```powershell
-Test-Path .\data\raw\smartdoc\frames_metadata.csv
-Test-Path .\data\raw\smartdoc\background01\datasheet001\frame_0001.jpeg
-(Import-Csv .\data\raw\smartdoc\frames_metadata.csv | Measure-Object).Count
+python -X utf8 src/document_scanner/data/adapters.py
+python -X utf8 src/document_scanner/data/validate.py
+python -X utf8 src/document_scanner/data/split.py
+python -X utf8 src/document_scanner/data/overlay.py
 ```
 
-Hai lệnh đầu phải trả `True`. Với đúng bản đang dùng, lệnh cuối trả `24889`. Nếu khác, hãy kiểm tra bản tải và vị trí giải nén trước khi tiếp tục.
+Máy hiện tại đã có manifest cho **24.889 ảnh hợp lệ**, 30 trang gốc, 5 nền. Không cần chạy lại tuần 1 mỗi khi quét ảnh. Mọi frame cùng một `model_name` ở cùng một tập: train 17.495 ảnh, validation 3.192 ảnh, test 4.202 ảnh. Nhãn nguồn dùng tọa độ pixel; không nhân lại với kích thước ảnh. Xem [phần dữ liệu](docs/guides/phase1_data.md).
 
-**Quy ước nhãn:** `image_path` là đường dẫn tương đối từ `data/raw/smartdoc/`. Các trường `tl`, `bl`, `br`, `tr` là bốn góc theo tọa độ **pixel** của ảnh, không phải tọa độ 0–1. Nếu code dùng thứ tự TL → TR → BR → BL, hãy đổi theo tên trường. `model_name` là ID của trang gốc; mọi frame có cùng `model_name` phải ở cùng train/validation/test để tránh rò rỉ. Bộ dữ liệu có 30 trang gốc trên 5 nền, nên 24.889 frame không tương đương 24.889 trang độc lập. Xem [schema nguồn](https://github.com/jchazalon/smartdoc15-ch1-dataset) để đối chiếu.
+## 3. Chạy tuần 2
 
-SmartDoc chỉ cung cấp đầu vào và nhãn phù hợp cho bài toán khung giấy. Ảnh không có giấy và ảnh tiếng Việt tự chụp sẽ được thêm sau; hiện chưa thể dùng bộ này để đo tỷ lệ báo nhầm trên ảnh âm hoặc CER tiếng Việt.
-
-## 3. Cấu trúc repository hiện tại
-
-```text
-Project1_document_scanner/
-├── data/                       # raw, interim, processed; dữ liệu lớn không đưa lên Git
-├── models/                     # Trọng số mô hình sẽ dùng sau
-├── docs/
-│   ├── phase1_data.md           # Hướng dẫn chạy tuần 1
-│   └── week1_report.md          # Kết quả kiểm tra và giới hạn
-├── src/
-│   └── document_scanner/
-│       ├── data/               # adapters.py, validate.py, split.py, overlay.py
-│       ├── scanner/            # Tìm góc và nắn ảnh
-│       ├── ocr/                # Nhận dạng chữ
-│       └── layout/             # Thứ tự đọc
-├── tests/                      # Chưa có test
-├── requirements.txt
-└── README.md
-```
-
-Các file `__init__.py` giúp Python nhận ra package. Thư mục `data` đã có mã xử lý dữ liệu; `scanner`, `ocr`, `layout` hiện là khung cho các giai đoạn sau. Xem [hướng dẫn phần 1](docs/phase1_data.md). Các module hiện có và dự kiến:
-
-| Nơi đặt mã | File | Vai trò |
-| --- | --- | --- |
-| `src/document_scanner/data/` | `adapters.py`, `validate.py`, `split.py`, `overlay.py` | Đã có: nạp nhãn, kiểm tra, chia tập, vẽ overlay |
-| `src/document_scanner/scanner/` | `detect.py`, `geometry.py`, `enhance.py`, `orientation.py` | Tìm góc, nắn ảnh, làm rõ, xoay hướng |
-| `src/document_scanner/ocr/` | `detect.py`, `recognize.py` | Tìm dòng chữ và nhận dạng ký tự |
-| `src/document_scanner/layout/` | `reading_order.py` | Ghép khối/cột và sắp thứ tự đọc |
-| `src/document_scanner/` | `export.py`, `evaluate.py` | Xuất kết quả và tính metric |
-| Gốc repository | `app.py` | Giao diện demo sau khi pipeline hoạt động |
-
-Overlay tuần 1 được lưu dưới `artifacts/week1/overlays/`. Ảnh, môi trường ảo và dữ liệu dẫn xuất được Git bỏ qua, chỉ giữ trên máy. Các file ngoài module `data` trong bảng trên là kế hoạch, chưa tồn tại.
-
-Các thư mục đánh số của bản cũ và hai script `download_data.py`, `preprocess.py` đã được bỏ. Đường dẫn `data/raw/subset_2k/labels.csv` thuộc phương án dữ liệu trước đây và **không dùng** ở trạng thái hiện tại.
-
-## 4. Chạy phần 1
-
-Phần 1 dùng SmartDoc đã tải; chưa cần ảnh tự chụp hay mô hình OCR.
-
-Sau khi cài môi trường và tải dữ liệu, mở PowerShell ở gốc repository rồi chạy theo thứ tự:
+Quét **toàn bộ 24.889 ảnh**, lưu PNG và JSON cho các ảnh tìm được khung; ảnh thất bại vẫn có bản ghi:
 
 ```powershell
-.\venv\Scripts\python.exe src\document_scanner\data\adapters.py
-.\venv\Scripts\python.exe src\document_scanner\data\validate.py
-.\venv\Scripts\python.exe src\document_scanner\data\split.py
-.\venv\Scripts\python.exe src\document_scanner\data\overlay.py
+python -X utf8 -u src/document_scanner/scanner/scan.py --split all --workers 4
+python -X utf8 src/document_scanner/scanner/evaluate.py --examples
 ```
 
-Nếu đã kích hoạt `venv`, có thể thay `.\venv\Scripts\python.exe` bằng `python`. Trên macOS/Linux dùng `./venv/bin/python` và dấu `/` trong đường dẫn script. Các script được chạy trực tiếp theo lệnh trên.
+Lệnh thứ hai dùng lần chạy hoàn tất gần nhất, chỉ chấm **train và validation**. Không đưa kết quả sửa tay vào chỉ số tự động. Test được quét nhưng chưa chấm để giữ cho đánh giá cuối kỳ.
 
-`validate.py` đọc toàn bộ ảnh nên có thể mất vài phút. Nó tạo `data/interim/manifest.csv` và `invalid_rows.csv`. `split.py` tạo `manifest_with_split.csv`, chia theo `model_name` với seed 42. `overlay.py` tạo 50 ảnh để xem nhãn có khớp giấy không. Chạy lại sẽ ghi đè các CSV và ảnh cùng tên; dữ liệu gốc không bị chỉnh sửa.
+Tùy chọn: `--split dev` chỉ quét train + validation; `--split val` chỉ quét validation; `--workers 1` xử lý lần lượt và nhẹ máy hơn. `--limit 20` dành cho kiểm tra nhanh, không dùng để báo cáo toàn bộ dữ liệu.
 
-| Tập | Trang gốc | Ảnh |
-| --- | ---: | ---: |
-| Train | 21 | 17.495 |
-| Validation | 4 | 3.192 |
-| Test | 5 | 4.202 |
+Sửa một ảnh cụ thể khi cần:
 
-Không có trang gốc nào xuất hiện ở nhiều tập. Giữ test để đánh giá cuối cùng. 50 overlay hiện bao phủ 10 trang gốc trên 5 nền; cần bổ sung kiểm tra trực quan các trang còn lại. Overlay vẽ nhãn có sẵn, chưa phải kết quả tự tìm góc. Chi tiết đầu ra: [hướng dẫn phần 1](docs/phase1_data.md).
+```powershell
+python -X utf8 src/document_scanner/scanner/manual_scan.py --image data/raw/smartdoc/background04/letter001/frame_0001.jpeg
+```
 
-## 5. Lộ trình
+Cửa sổ điền góc tự động nếu có. `R` xóa để chọn lại bốn góc; chương trình tự sắp thứ tự. `P` xem trước, `E` xoay 90 độ, `S` lưu, `Q` hoặc Esc thoát. **Không phải bấm tay cho toàn bộ dataset.** Chế độ này cần máy có màn hình; lệnh chạy theo lô không mở cửa sổ.
 
-| Giai đoạn | Đầu ra dự kiến | Trạng thái |
-| --- | --- | --- |
-| Tuần 1 | Audit SmartDoc, overlay, manifest, split theo trang gốc | Đã chạy; cần mở rộng kiểm tra trực quan |
-| Tuần 2 | Tìm góc, nắn phối cảnh, sửa góc thủ công | Chưa triển khai |
-| Tuần 3 | Làm rõ scan và tách dòng | Chưa triển khai |
-| Tuần 4 | Tích hợp OCR tiếng Việt có sẵn | Chưa triển khai |
-| Tuần 5 | Thứ tự đọc và giao diện tối thiểu | Chưa triển khai |
-| Tuần 6 | Đánh giá trên test đã khóa, báo cáo và demo | Chưa triển khai |
+## 4. Kết quả nằm ở đâu
 
-Các mốc chất lượng trong bản kế hoạch là **mục tiêu**, chưa phải kết quả đã đo. Khi pipeline hoạt động, README sẽ bổ sung lệnh chạy thật, cấu hình, phiên bản model OCR và kết quả đánh giá.
+```text
+data/processed/                       # Mở đây để xem ảnh sau xử lý
+├── scan/<run_id>/<split>/<background>/<model>/frame_XXXX.png
+└── manual/<run_id>/warped_color.png   # Ảnh lưu từ cửa sổ sửa góc
 
-## 6. Ghi nguồn
+artifacts/week2/
+├── batch/<run_id>/
+│   ├── metadata/<split>/<background>/<model>/frame_XXXX.json
+│   │                           # Trạng thái, góc, H/T, đường dẫn ảnh
+│   ├── results.csv             # Một dòng cho mỗi ảnh đã xử lý
+│   ├── run_info.json           # Số ảnh, thời gian, phiên bản, hash code
+│   ├── config.json
+│   ├── source/                 # Bản code đúng tại thời điểm chạy
+│   ├── evaluation/             # Chỉ số train/val và danh sách lỗi
+│   └── examples/               # 5 ca đạt + 5 ca lỗi có ảnh trung gian
+├── manual/<run_id>/corners.json # Thông tin góc và xoay của ảnh sửa tay
+├── report/                     # Báo cáo Word và hình minh họa
+├── history.zip                 # Lịch sử cũ đã nén; chỉ mở khi đối chiếu
+└── batch/latest.json           # Chỉ tới lần chạy đã hoàn tất gần nhất
+```
 
-SmartDoc được phát hành theo CC BY 4.0. Khi dùng ảnh hoặc công bố kết quả, hãy ghi nguồn theo [hướng dẫn của bộ dữ liệu](https://github.com/jchazalon/smartdoc15-ch1-dataset). Không commit toàn bộ ảnh vào repository này.
+`batch` nghĩa là chạy nhiều ảnh tự động trong một lượt; `manual` là mở từng ảnh để người dùng sửa góc hoặc xoay. Hai nơi dùng cùng mã lượt chạy với thư mục ảnh tương ứng trong `data/processed`. `scan_path` trong CSV/JSON mới tính từ gốc dự án (`scan_path_base=project`); `metadata_path` tính từ thư mục batch.
+
+Ảnh PNG giữ màu và đã nắn phối cảnh; chưa tự làm trắng nền hoặc nhận dạng chữ. `ok` là trạng thái xử lý, không bảo đảm khung đúng. `uncertain` là có khung nhưng cần xem lại; `no_candidate` là chưa tìm được khung phù hợp. Kết quả đúng/sai được chấm bằng IoU riêng.
+
+## 5. Cấu trúc mã nguồn
+
+```text
+configs/scanner.json                 # Các ngưỡng xử lý
+src/document_scanner/
+├── data/                            # Nạp, kiểm tra, chia tập và overlay tuần 1
+├── scanner/
+│   ├── detect.py                    # Canny + Otsu, chọn tứ giác
+│   ├── geometry.py                  # Kiểm tra góc, warp, ma trận H/T, xoay
+│   ├── scan.py                      # Chạy tự động theo lô
+│   ├── manual_scan.py               # Xem/sửa góc một ảnh
+│   └── evaluate.py                  # Chấm kết quả và xuất minh họa
+├── ocr/                             # Dành cho phần OCR sau này
+└── layout/                          # Dành cho thứ tự đọc sau này
+```
+
+`detect.py` và `geometry.py` là thư viện dùng chung, không còn đoạn chạy thử riêng ở cuối file. Dữ liệu gốc ở `data/raw/`; manifest ở `data/interim/`; ảnh sau scan ở `data/processed/`; thông tin chạy và đánh giá ở `artifacts/week2/`. `models/`, `ocr/`, `layout/` được giữ cho các phần sau.
+
+## 6. Kiểm tra và giới hạn
+
+```powershell
+python -X utf8 -B -m unittest discover -s tests -v
+```
+
+Các kiểm tra bao phủ lỗi lật gương, xoay và H/T, góc sai/ngoài ảnh, ảnh trống, công thức IoU, giữ ca thất bại trong mẫu số và không chấm test. Có kiểm tra lưu PNG vào processed, JSON vào artifacts cho cả chạy tự động và sửa tay, cùng khả năng đọc đường dẫn kiểu cũ.
+
+Thuật toán hiện còn yếu ở nền khó, đặc biệt background04–05. Số ảnh lớn không thay thế sự đa dạng: 24.889 frame chỉ thuộc 30 trang gốc. Chưa đo được CER/WER tiếng Việt hay tỷ lệ báo nhầm trên ảnh không có giấy thực tế. Chi tiết và số liệu cuối cùng nằm trong [báo cáo tuần 2](docs/week2_report.md).
+
+## 7. Git và nguồn
+
+Chỉ đưa code, cấu hình, tài liệu và bảng tổng hợp nhỏ lên Git. `.gitignore` giữ ảnh, dữ liệu gốc, manifest, venv và artifacts trên máy. Không commit ảnh nhúng trong tài liệu nếu muốn giữ ảnh hoàn toàn cục bộ.
+
+Khi dùng ảnh SmartDoc, ghi nguồn theo [hướng dẫn của bộ dữ liệu](https://github.com/jchazalon/smartdoc15-ch1-dataset). Việc tạo báo cáo không tự động tạo commit hoặc đẩy code lên GitHub.

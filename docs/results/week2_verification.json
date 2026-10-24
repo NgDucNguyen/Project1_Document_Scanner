@@ -1,0 +1,12 @@
+{
+  "images_accounted_for": 24889,
+  "json_files_checked": 24889,
+  "png_files_fully_decoded": 18571,
+  "H_T_checks_passed": 18571,
+  "missing_or_duplicate_paths": 0,
+  "cross_split_model_leakage": 0,
+  "validation_identical_to_v2": true,
+  "synthetic_unit_tests": 6,
+  "synthetic_unit_tests_passed": 6,
+  "test_accuracy_evaluated": false
+}
