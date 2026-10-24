@@ -4,7 +4,7 @@ Dự án hướng tới ứng dụng nhận ảnh chụp một trang giấy, tì
 
 **Sinh viên:** Nguyễn Đức Nguyên · MSSV 202416305 · Đại học Bách khoa Hà Nội (HUST).
 
-> **Trạng thái hiện tại:** Dữ liệu SmartDoc đã có trên máy phát triển. Mã xử lý dữ liệu, thuật toán scan, OCR và giao diện chưa được viết; repository **chưa có lệnh chạy ứng dụng**. README này giúp chuẩn bị môi trường và dữ liệu cho phần 1, đồng thời phân biệt việc đã làm với kế hoạch.
+> **Trạng thái hiện tại:** Đã có bốn script tuần 1 để đọc SmartDoc, kiểm tra dữ liệu, chia tập và vẽ nhãn. Đã tạo manifest cho **24.889 ảnh hợp lệ** và 50 ảnh overlay trên máy phát triển. Thuật toán tự tìm góc, nắn ảnh, OCR và giao diện chưa triển khai. Xem [kết quả tuần 1](docs/week1_report.md).
 
 ## 1. Chuẩn bị môi trường
 
@@ -45,7 +45,7 @@ data/
 │       ├── background03/
 │       ├── background04/
 │       └── background05/
-├── interim/                 # Manifest, split và báo cáo audit sẽ tạo
+├── interim/                 # Manifest, danh sách lỗi và kết quả chia tập
 └── processed/               # Dữ liệu dẫn xuất sẽ tạo
 ```
 
@@ -75,10 +75,11 @@ Project1_document_scanner/
 ├── data/                       # raw, interim, processed; dữ liệu lớn không đưa lên Git
 ├── models/                     # Trọng số mô hình sẽ dùng sau
 ├── docs/
-│   └── phase1_data.md           # Hướng dẫn riêng cho phần dữ liệu
+│   ├── phase1_data.md           # Hướng dẫn chạy tuần 1
+│   └── week1_report.md          # Kết quả kiểm tra và giới hạn
 ├── src/
-│   └── document_scanner/       # Package Python; hiện chỉ có __init__.py rỗng
-│       ├── data/               # Nạp và kiểm tra dữ liệu phần 1
+│   └── document_scanner/
+│       ├── data/               # adapters.py, validate.py, split.py, overlay.py
 │       ├── scanner/            # Tìm góc và nắn ảnh
 │       ├── ocr/                # Nhận dạng chữ
 │       └── layout/             # Thứ tự đọc
@@ -87,39 +88,51 @@ Project1_document_scanner/
 └── README.md
 ```
 
-Các file `__init__.py` rỗng chỉ giúp Python nhận ra package; chưa có thuật toán. Bốn thư mục chức năng đã được tạo sẵn để thêm mã theo từng giai đoạn. Xem [hướng dẫn phần 1](docs/phase1_data.md). Theo bản đề xuất, những file sẽ tự viết theo từng giai đoạn là:
+Các file `__init__.py` giúp Python nhận ra package. Thư mục `data` đã có mã xử lý dữ liệu; `scanner`, `ocr`, `layout` hiện là khung cho các giai đoạn sau. Xem [hướng dẫn phần 1](docs/phase1_data.md). Các module hiện có và dự kiến:
 
-| Nơi đặt mã | File dự kiến | Vai trò |
+| Nơi đặt mã | File | Vai trò |
 | --- | --- | --- |
-| `src/document_scanner/data/` | `adapters.py`, `validate.py` | Nạp metadata, chuẩn hóa nhãn, audit dữ liệu |
+| `src/document_scanner/data/` | `adapters.py`, `validate.py`, `split.py`, `overlay.py` | Đã có: nạp nhãn, kiểm tra, chia tập, vẽ overlay |
 | `src/document_scanner/scanner/` | `detect.py`, `geometry.py`, `enhance.py`, `orientation.py` | Tìm góc, nắn ảnh, làm rõ, xoay hướng |
 | `src/document_scanner/ocr/` | `detect.py`, `recognize.py` | Tìm dòng chữ và nhận dạng ký tự |
 | `src/document_scanner/layout/` | `reading_order.py` | Ghép khối/cột và sắp thứ tự đọc |
 | `src/document_scanner/` | `export.py`, `evaluate.py` | Xuất kết quả và tính metric |
 | Gốc repository | `app.py` | Giao diện demo sau khi pipeline hoạt động |
 
-Ảnh trung gian cho từng lần chạy nên lưu dưới `artifacts/{run_id}/{sample_id}/` (đã được Git bỏ qua). Chỉ tạo các file ở bảng khi bắt đầu viết chức năng tương ứng; hiện chúng chưa tồn tại.
+Overlay tuần 1 được lưu dưới `artifacts/week1/overlays/`. Ảnh, môi trường ảo và dữ liệu dẫn xuất được Git bỏ qua, chỉ giữ trên máy. Các file ngoài module `data` trong bảng trên là kế hoạch, chưa tồn tại.
 
 Các thư mục đánh số của bản cũ và hai script `download_data.py`, `preprocess.py` đã được bỏ. Đường dẫn `data/raw/subset_2k/labels.csv` thuộc phương án dữ liệu trước đây và **không dùng** ở trạng thái hiện tại.
 
-## 4. Bắt đầu phần 1
+## 4. Chạy phần 1
 
 Phần 1 dùng SmartDoc đã tải; chưa cần ảnh tự chụp hay mô hình OCR.
 
-1. Đọc header và vài dòng `frames_metadata.csv`, đối chiếu `image_path` với file ảnh thật.
-2. Kiểm tra ảnh đọc được, nhãn đủ bốn góc, tọa độ hữu hạn, bốn điểm khác nhau, tứ giác lồi và nằm trong ảnh. Ghi số mẫu giữ/loại và lý do.
-3. Vẽ nhãn trên ít nhất 50 ảnh trải đều các `model_name` và nền; kiểm tra bằng mắt độ khớp mép giấy cùng thứ tự góc.
-4. Tạo manifest với đường dẫn tương đối, kích thước ảnh, `model_name`, góc pixel và trạng thái nhãn.
-5. Chia train/validation/test theo `model_name` **trước** khi lấy mẫu frame hoặc augmentation. Lưu seed và danh sách nhóm cho từng tập.
-6. Chạy baseline nhỏ trên development, lưu cả ca đúng và ca lỗi. Giữ test để đánh giá cuối cùng.
+Sau khi cài môi trường và tải dữ liệu, mở PowerShell ở gốc repository rồi chạy theo thứ tự:
 
-Đầu ra phần 1 là báo cáo audit, ảnh overlay, manifest và split tái lập được. Tên file và lệnh chạy cụ thể sẽ bổ sung khi sinh viên viết xong module; README hiện không đưa lệnh chạy cho script chưa tồn tại.
+```powershell
+.\venv\Scripts\python.exe src\document_scanner\data\adapters.py
+.\venv\Scripts\python.exe src\document_scanner\data\validate.py
+.\venv\Scripts\python.exe src\document_scanner\data\split.py
+.\venv\Scripts\python.exe src\document_scanner\data\overlay.py
+```
+
+Nếu đã kích hoạt `venv`, có thể thay `.\venv\Scripts\python.exe` bằng `python`. Trên macOS/Linux dùng `./venv/bin/python` và dấu `/` trong đường dẫn script. Các script được chạy trực tiếp theo lệnh trên.
+
+`validate.py` đọc toàn bộ ảnh nên có thể mất vài phút. Nó tạo `data/interim/manifest.csv` và `invalid_rows.csv`. `split.py` tạo `manifest_with_split.csv`, chia theo `model_name` với seed 42. `overlay.py` tạo 50 ảnh để xem nhãn có khớp giấy không. Chạy lại sẽ ghi đè các CSV và ảnh cùng tên; dữ liệu gốc không bị chỉnh sửa.
+
+| Tập | Trang gốc | Ảnh |
+| --- | ---: | ---: |
+| Train | 21 | 17.495 |
+| Validation | 4 | 3.192 |
+| Test | 5 | 4.202 |
+
+Không có trang gốc nào xuất hiện ở nhiều tập. Giữ test để đánh giá cuối cùng. 50 overlay hiện bao phủ 10 trang gốc trên 5 nền; cần bổ sung kiểm tra trực quan các trang còn lại. Overlay vẽ nhãn có sẵn, chưa phải kết quả tự tìm góc. Chi tiết đầu ra: [hướng dẫn phần 1](docs/phase1_data.md).
 
 ## 5. Lộ trình
 
 | Giai đoạn | Đầu ra dự kiến | Trạng thái |
 | --- | --- | --- |
-| Tuần 1 | Audit SmartDoc, overlay, manifest, split theo trang gốc | Chuẩn bị bắt đầu |
+| Tuần 1 | Audit SmartDoc, overlay, manifest, split theo trang gốc | Đã chạy; cần mở rộng kiểm tra trực quan |
 | Tuần 2 | Tìm góc, nắn phối cảnh, sửa góc thủ công | Chưa triển khai |
 | Tuần 3 | Làm rõ scan và tách dòng | Chưa triển khai |
 | Tuần 4 | Tích hợp OCR tiếng Việt có sẵn | Chưa triển khai |
