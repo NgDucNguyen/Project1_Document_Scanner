@@ -5,6 +5,16 @@ __pycache__/
 .DS_Store
 artifacts/
 
+# Ảnh chỉ giữ trên máy, không đưa lên GitHub.
+*.[jJ][pP][gG]
+*.[jJ][pP][eE][gG]
+*.[pP][nN][gG]
+*.[wW][eE][bB][pP]
+*.[bB][mM][pP]
+*.[gG][iI][fF]
+*.[tT][iI][fF]
+*.[tT][iI][fF][fF]
+
 # Bỏ qua dữ liệu và mô hình nặng, giữ các thư mục rỗng trong Git
 data/raw/**
 !data/raw/.gitkeep
