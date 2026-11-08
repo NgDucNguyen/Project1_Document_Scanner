@@ -2,9 +2,9 @@
 
 **Sinh viên:** Nguyễn Đức Nguyên · MSSV 202416305 · Đại học Bách khoa Hà Nội.
 
-Đầu vào là ảnh chụp một trang giấy. Tuần 1 chuẩn bị dữ liệu; tuần 2 đã có tìm bốn góc, nắn phối cảnh, sửa góc và xoay trang. OCR và làm rõ chữ thuộc các tuần tiếp theo.
+Đầu vào là ảnh chụp một trang giấy. Tuần 1 chuẩn bị dữ liệu; tuần 2 xây dựng bộ tìm góc và nắn phối cảnh. Hiện dự án đã thử nghiệm OCR tiếng Anh bằng Tesseract trên FUNSD; chất lượng toàn bộ luồng ảnh chụp → scan → OCR vẫn cần cải thiện và đánh giá thêm.
 
-**Đọc kết quả:** [Báo cáo tuần 2](docs/week2_report.md) · [Hướng dẫn tuần 2](docs/guides/phase2_scanner.md) · [Nguồn dữ liệu và các thay đổi](docs/guides/data_sources.md) · [Tuần 1](docs/week1_report.md).
+**Đọc kết quả:** [Báo cáo OCR tiếng Anh](docs/week3_ocr_report.md) · [Báo cáo tuần 2](docs/week2_report.md) · [Hướng dẫn tuần 2](docs/guides/phase2_scanner.md) · [Nguồn dữ liệu](docs/guides/data_sources.md) · [Tuần 1](docs/week1_report.md).
 
 ## Mở nhanh kết quả hiện có
 
@@ -29,7 +29,25 @@ python -m pip check
 
 Nếu PowerShell không cho kích hoạt, thay `python` trong các lệnh bên dưới bằng `.\venv\Scripts\python.exe`. Với Git Bash dùng `source venv/Scripts/activate`. Không sao chép venv từ máy khác. Không cần gõ `python3`.
 
-`requirements.txt` khóa ba thư viện đang dùng trong tuần 1–2. Đây là bộ quét OpenCV, chưa cần tải model, GPU hoặc thư viện OCR. Các thư viện cũ đã cài trong venv có thể còn, nhưng không cần để chạy bộ quét.
+`requirements.txt` chứa các thư viện Python cho dự án. Để chạy OCR còn cần cài riêng chương trình Tesseract và dữ liệu ngôn ngữ tiếng Anh `eng`; xem đường dẫn Tesseract trong `src/document_scanner/ocr/recognize.py`. Tesseract không được cài tự động bằng `pip install -r requirements.txt`.
+
+## Chạy OCR tiếng Anh
+
+Tải [FUNSD](https://guillaumejaume.github.io/FUNSD/download/), đọc điều khoản sử dụng và giải nén để có `data/raw/funsd/dataset/training_data/` và `data/raw/funsd/dataset/testing_data/`. Với ảnh FUNSD đã scan sẵn, bỏ qua bước tìm mép giấy:
+
+```powershell
+python -X utf8 src/document_scanner/pipeline.py --input-type scan --image data/raw/funsd/dataset/testing_data/images/82092117.png
+```
+
+Với ảnh chụp một trang giấy, thay đường dẫn và dùng `--input-type photo`; chương trình tìm góc, nắn trang rồi đưa ảnh vào OCR:
+
+```powershell
+python -X utf8 src/document_scanner/pipeline.py --input-type photo --image duong_dan_den_anh.jpg --lang eng
+```
+
+Mỗi lần chạy thành công tạo một thư mục trong `data/processed/pipeline/`, gồm `scan.png`, `text.txt` và `metadata.json`. OCR toàn trang hiện dùng cấu hình mặc định của Tesseract; kết quả có thể sai nhiều nếu chữ nhỏ, ảnh mờ hoặc phát hiện góc sai. Nếu không tìm được trang thì chương trình dừng trước bước OCR.
+
+Mô hình tiếng Anh tinh chỉnh từ FUNSD được tự chọn nếu có tại `models/funsd_english/`. Nếu thiếu mô hình, chương trình dùng `eng` của Tesseract; dùng `--ocr-model standard` để so sánh với mô hình gốc hoặc `--ocr-model funsd` để bắt buộc dùng mô hình mới. Dùng `--psm 11` để thử tài liệu có nhiều vùng chữ rải rác. Kết quả đánh giá và giới hạn nằm trong [báo cáo OCR tiếng Anh](docs/week3_ocr_report.md). File mô hình và dữ liệu được giữ trên máy, không nằm trong Git.
 
 ## 2. Chuẩn bị dữ liệu
 
@@ -109,11 +127,12 @@ src/document_scanner/
 │   ├── scan.py                      # Chạy tự động theo lô
 │   ├── manual_scan.py               # Xem/sửa góc một ảnh
 │   └── evaluate.py                  # Chấm kết quả và xuất minh họa
-├── ocr/                             # Dành cho phần OCR sau này
+├── ocr/                             # Nhận dạng và đánh giá OCR tiếng Anh
+├── pipeline.py                      # Nối scan và OCR cho một ảnh
 └── layout/                          # Dành cho thứ tự đọc sau này
 ```
 
-`detect.py` và `geometry.py` là thư viện dùng chung, không còn đoạn chạy thử riêng ở cuối file. Dữ liệu gốc ở `data/raw/`; manifest ở `data/interim/`; ảnh sau scan ở `data/processed/`; thông tin chạy và đánh giá ở `artifacts/week2/`. `models/`, `ocr/`, `layout/` được giữ cho các phần sau.
+`detect.py` và `geometry.py` là thư viện dùng chung. Dữ liệu gốc ở `data/raw/`; manifest ở `data/interim/`; ảnh sau xử lý ở `data/processed/`; kết quả đánh giá ở `artifacts/week2/` và `artifacts/week3/`. `layout/` dành cho phần thứ tự đọc sau này.
 
 ## 6. Kiểm tra và giới hạn
 
