@@ -2,19 +2,18 @@
 
 **Sinh viên:** Nguyễn Đức Nguyên · MSSV 202416305 · Đại học Bách khoa Hà Nội.
 
-Đầu vào là ảnh chụp một trang giấy. Tuần 1 chuẩn bị dữ liệu; tuần 2 xây dựng bộ tìm góc và nắn phối cảnh. Hiện dự án đã thử nghiệm OCR tiếng Anh bằng Tesseract trên FUNSD; chất lượng toàn bộ luồng ảnh chụp → scan → OCR vẫn cần cải thiện và đánh giá thêm.
+Đầu vào là ảnh chụp một trang giấy. Tuần 1 chuẩn bị dữ liệu; tuần 2 xây dựng bộ tìm góc và nắn phối cảnh. OCR tiếng Anh đã thử nghiệm nhưng hiện **tạm dừng phát triển OCR** để tập trung cải thiện phát hiện và cắt vùng tài liệu. Cần kiểm tra ảnh scan, đặc biệt khi nền phức tạp hoặc thiếu góc trang.
 
 **Đọc kết quả:** [Báo cáo OCR tiếng Anh](docs/week3_ocr_report.md) · [Báo cáo tuần 2](docs/week2_report.md) · [Hướng dẫn tuần 2](docs/guides/phase2_scanner.md) · [Nguồn dữ liệu](docs/guides/data_sources.md) · [Tuần 1](docs/week1_report.md).
 
 ## Mở nhanh kết quả hiện có
 
-**Đã chạy đủ 24.889 ảnh ngày 24/10/2026.** Không cần chạy lại để xem kết quả.
+Lần chạy ngày 24/10/2026 đã xử lý 24.889 ảnh, trong đó tạo 18.571 ảnh scan. **Ảnh kết quả cũ đã được dọn khỏi máy**; các con số vẫn được giữ trong báo cáo lịch sử. Muốn có ảnh mới cần chạy lại scanner.
 
-- [Ảnh scan đã tạo](data/processed/scan/20261024_161837_753214/): 18.571 PNG; 6.318 ảnh còn lại không tìm được khung, đã ghi nhận trong CSV/JSON.
-- [Ảnh đã sửa góc bằng tay](data/processed/manual/corrected_example/): một ảnh minh họa, lưu riêng với ảnh tự động.
-- [10 ca minh họa](artifacts/week2/batch/20261024_161837_753214/examples/): trích từ lần chạy đầy đủ để xem các bước và lỗi.
-- [Báo cáo Word](artifacts/week2/report/Bao_cao_tuan_2.docx) và [báo cáo Markdown](docs/week2_report.md).
-- [Giải thích từng thư mục kết quả](artifacts/week2/README.md) và [mục lục tài liệu](docs/README.md).
+- [Báo cáo tuần 2 và số liệu lịch sử](docs/week2_report.md).
+- [Báo cáo OCR và giới hạn các thử nghiệm](docs/week3_ocr_report.md).
+- [So sánh 20 ảnh RDTAG theo từng ảnh](docs/results/rdtag_development_comparison.csv).
+- [Mục lục tài liệu](docs/README.md).
 
 ## 1. Cài đặt
 
@@ -45,9 +44,11 @@ Với ảnh chụp một trang giấy, thay đường dẫn và dùng `--input-t
 python -X utf8 src/document_scanner/pipeline.py --input-type photo --image duong_dan_den_anh.jpg --lang eng
 ```
 
-Mỗi lần chạy thành công tạo một thư mục trong `data/processed/pipeline/`, gồm `scan.png`, `text.txt` và `metadata.json`. OCR toàn trang hiện dùng cấu hình mặc định của Tesseract; kết quả có thể sai nhiều nếu chữ nhỏ, ảnh mờ hoặc phát hiện góc sai. Nếu không tìm được trang thì chương trình dừng trước bước OCR.
+Mỗi lần chạy thành công tạo một thư mục trong `data/processed/pipeline/`, gồm `scan.png`, `text.txt` và `metadata.json`. Phần tiếng Anh dùng mô hình FUNSD với chế độ PSM 11; kết quả có thể sai nhiều nếu chữ nhỏ, ảnh mờ hoặc phát hiện góc sai. Nếu không tìm được khung trang, pipeline thử xoay và cắt theo vùng chữ rồi OCR; cách này không nắn phối cảnh và cần kiểm tra ảnh để tránh mất nội dung. Nếu cũng không tìm thấy đủ chữ, chương trình báo lỗi.
 
-Mô hình tiếng Anh tinh chỉnh từ FUNSD được tự chọn nếu có tại `models/funsd_english/`. Nếu thiếu mô hình, chương trình dùng `eng` của Tesseract; dùng `--ocr-model standard` để so sánh với mô hình gốc hoặc `--ocr-model funsd` để bắt buộc dùng mô hình mới. Dùng `--psm 11` để thử tài liệu có nhiều vùng chữ rải rác. Kết quả đánh giá và giới hạn nằm trong [báo cáo OCR tiếng Anh](docs/week3_ocr_report.md). File mô hình và dữ liệu được giữ trên máy, không nằm trong Git.
+Để thử ảnh của bạn và tùy chọn so sánh với file TXT chuẩn, xem [hướng dẫn thử OCR một ảnh](docs/guides/thu_ocr_mot_anh.md). Thêm `--reference "duong_dan_nhan.txt"` để tính CER/WER và lưu `evaluation.json`.
+
+Mặc định tiếng Anh dùng mô hình tinh chỉnh `models/funsd_english/funsd_eng.traineddata` và PSM 11; bạn không cần chọn mô hình khi chạy. Nếu thiếu file mô hình, chương trình báo lỗi để cài lại, thay vì tự đổi mô hình. Kết quả đánh giá và giới hạn nằm trong [báo cáo OCR tiếng Anh](docs/week3_ocr_report.md). File mô hình và dữ liệu được giữ trên máy, không nằm trong Git.
 
 ## 2. Chuẩn bị dữ liệu
 
@@ -93,18 +94,18 @@ Cửa sổ điền góc tự động nếu có. `R` xóa để chọn lại bố
 ```text
 data/processed/                       # Mở đây để xem ảnh sau xử lý
 ├── scan/<run_id>/<split>/<background>/<model>/frame_XXXX.png
-└── manual/<run_id>/warped_color.png   # Ảnh lưu từ cửa sổ sửa góc
+├── manual/<run_id>/warped_color.png   # Ảnh lưu từ cửa sổ sửa góc
+└── pipeline/<run_id>/                # Ảnh và văn bản khi chạy pipeline
 
 artifacts/week2/
 ├── batch/<run_id>/
-│   ├── metadata/<split>/<background>/<model>/frame_XXXX.json
-│   │                           # Trạng thái, góc, H/T, đường dẫn ảnh
+│   ├── metadata/<split>/<background>/<model>/frame_XXXX.json # JSON từng ảnh
 │   ├── results.csv             # Một dòng cho mỗi ảnh đã xử lý
 │   ├── run_info.json           # Số ảnh, thời gian, phiên bản, hash code
 │   ├── config.json
 │   ├── source/                 # Bản code đúng tại thời điểm chạy
 │   ├── evaluation/             # Chỉ số train/val và danh sách lỗi
-│   └── examples/               # 5 ca đạt + 5 ca lỗi có ảnh trung gian
+│   └── examples/               # Ảnh minh họa khi chạy --examples
 ├── manual/<run_id>/corners.json # Thông tin góc và xoay của ảnh sửa tay
 ├── report/                     # Báo cáo Word và hình minh họa
 ├── history.zip                 # Lịch sử cũ đã nén; chỉ mở khi đối chiếu
@@ -112,6 +113,8 @@ artifacts/week2/
 ```
 
 `batch` nghĩa là chạy nhiều ảnh tự động trong một lượt; `manual` là mở từng ảnh để người dùng sửa góc hoặc xoay. Hai nơi dùng cùng mã lượt chạy với thư mục ảnh tương ứng trong `data/processed`. `scan_path` trong CSV/JSON mới tính từ gốc dự án (`scan_path_base=project`); `metadata_path` tính từ thư mục batch.
+
+Đây là cấu trúc **sẽ được tạo khi chạy**. Ảnh kết quả và JSON từng ảnh của lượt cũ đã dọn; CSV, số liệu tổng hợp và snapshot quan trọng vẫn được giữ làm tài liệu lịch sử.
 
 Ảnh PNG giữ màu và đã nắn phối cảnh; chưa tự làm trắng nền hoặc nhận dạng chữ. `ok` là trạng thái xử lý, không bảo đảm khung đúng. `uncertain` là có khung nhưng cần xem lại; `no_candidate` là chưa tìm được khung phù hợp. Kết quả đúng/sai được chấm bằng IoU riêng.
 
@@ -123,16 +126,16 @@ src/document_scanner/
 ├── data/                            # Nạp, kiểm tra, chia tập và overlay tuần 1
 ├── scanner/
 │   ├── detect.py                    # Canny + Otsu, chọn tứ giác
+│   ├── content_scan.py              # Vùng chữ dự phòng trong pipeline OCR
 │   ├── geometry.py                  # Kiểm tra góc, warp, ma trận H/T, xoay
 │   ├── scan.py                      # Chạy tự động theo lô
 │   ├── manual_scan.py               # Xem/sửa góc một ảnh
 │   └── evaluate.py                  # Chấm kết quả và xuất minh họa
 ├── ocr/                             # Nhận dạng và đánh giá OCR tiếng Anh
-├── pipeline.py                      # Nối scan và OCR cho một ảnh
-└── layout/                          # Dành cho thứ tự đọc sau này
+└── pipeline.py                      # Nối scan và OCR cho một ảnh
 ```
 
-`detect.py` và `geometry.py` là thư viện dùng chung. Dữ liệu gốc ở `data/raw/`; manifest ở `data/interim/`; ảnh sau xử lý ở `data/processed/`; kết quả đánh giá ở `artifacts/week2/` và `artifacts/week3/`. `layout/` dành cho phần thứ tự đọc sau này.
+`detect.py` và `geometry.py` là thư viện dùng chung. Dữ liệu gốc ở `data/raw/`; manifest ở `data/interim/`; ảnh sau xử lý ở `data/processed/`; kết quả đánh giá ở `artifacts/week2/` và `artifacts/week3/`.
 
 ## 6. Kiểm tra và giới hạn
 

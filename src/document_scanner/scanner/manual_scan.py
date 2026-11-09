@@ -37,7 +37,9 @@ def main():
     parser.add_argument("--image", required=True)
     args = parser.parse_args()
     source_path = Path(args.image).resolve()
-    image = cv2.imread(str(source_path))
+    # OpenCV trên Windows có thể không đọc trực tiếp đường dẫn có dấu.
+    raw = source_path.read_bytes()
+    image = cv2.imdecode(np.frombuffer(raw, dtype=np.uint8), cv2.IMREAD_COLOR) if raw else None
     if image is None:
         raise ValueError("Không đọc được ảnh: " + str(source_path))
     detection = detect_document(image)

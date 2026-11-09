@@ -6,7 +6,7 @@
 
 Ghi chú sắp xếp ngày 25/10/2026: các hướng dẫn đã chuyển vào docs/guides; thư mục history được nén thành artifacts/week2/history.zip. Số liệu và ảnh của lần chạy đầy đủ giữ nguyên. Bản Word ngày 24/10 giữ nguyên như hồ sơ đã bàn giao; đường dẫn hướng dẫn cũ trong bản đó tra theo [mục lục hiện tại](README.md).
 
-Ảnh cuối hiện ở [data/processed/scan](../data/processed/scan/20261024_161837_753214/), ảnh sửa tay ở [data/processed/manual](../data/processed/manual/corrected_example/). JSON từng ảnh chuyển từ outputs sang metadata trong batch. Đã cập nhật code lưu ảnh, CSV và JSON theo đường dẫn mới; không chạy lại thuật toán. [Biên bản chuyển thư mục](results/week2_storage.json) ghi số lượng ảnh, kiểm tra đường dẫn và số PNG được đối chiếu hash hoặc đọc lại. Snapshot và số liệu đo ngày 24/10 được giữ làm hồ sơ của lần chạy gốc.
+**Cập nhật dọn dữ liệu ngày 09/11/2026:** ảnh scan, ảnh thử và JSON từng ảnh của lượt cũ đã xóa để chuẩn bị cải thiện scanner. Các con số và biên bản trong báo cáo phản ánh trạng thái của lần chạy trước khi dọn, không có nghĩa là các ảnh đó còn trên máy. Dữ liệu gốc, manifest, CSV tổng hợp và snapshot quan trọng vẫn được giữ. Chạy lại scanner để tạo ảnh và JSON mới.
 
 ## 1 Tóm tắt kết quả tuần 2
 
@@ -223,9 +223,9 @@ Source scanner chỉ còn năm file có nhiệm vụ rõ: detect.py tìm góc, g
 | docs/guides/data_sources.md | Lịch sử đổi nguồn và khác biệt với kế hoạch |
 | docs/guides/phase2_scanner.md | Hướng dẫn chạy và đọc đầu ra |
 | docs/results/ | Chỉ số tổng hợp, danh sách nhóm, chỉ mục minh họa, kiểm tra |
-| data/processed/scan/20261024_161837_753214/ | 18.571 PNG đã nắn tự động |
-| data/processed/manual/corrected_example/ | Ảnh chọn tay đã sửa thứ tự và hướng |
-| artifacts/week2/batch/20261024_161837_753214/ | JSON trong metadata, CSV, snapshot và minh họa |
+| data/processed/scan/20261024_161837_753214/ | 18.571 PNG của lượt cũ; đã dọn, tạo lại bằng cách chạy scanner |
+| data/processed/manual/corrected_example/ | Ảnh chọn tay cũ đã dọn |
+| artifacts/week2/batch/20261024_161837_753214/ | CSV, điểm đánh giá và snapshot; JSON từng ảnh và minh họa cũ đã dọn |
 | artifacts/week2/manual/corrected_example/ | corners.json ghi góc, xoay và đường dẫn ảnh sửa tay |
 | artifacts/week2/history.zip | Baseline v1, v2 và bằng chứng cũ đã nén |
 | tests/test_scanner.py | Sáu kiểm tra quan trọng |

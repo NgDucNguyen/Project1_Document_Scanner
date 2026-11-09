@@ -27,7 +27,7 @@ python -X utf8 src/document_scanner/scanner/manual_scan.py --image data/raw/smar
 python -X utf8 -B -m unittest discover -s tests -v
 ```
 
-Để chấm một lần chạy cũ, thêm `--run artifacts/week2/batch/<run_id>`. Để tạo ảnh trung gian phải dùng đúng `detect.py`, `geometry.py` và cấu hình của lần chạy đó; các bản sao nằm trong `source/` và `config.json`. Nếu đã thay đổi thuật toán, khôi phục các file này về vị trí tương ứng trước khi tái tạo. Giữ `evaluate.py` hiện tại để đọc được đường dẫn ảnh trong processed; không chạy trực tiếp file snapshot từ thư mục artifacts.
+Để chấm một lần chạy cũ, thêm `--run artifacts/week2/batch/<run_id>`. Ảnh và JSON từng ảnh của lượt cũ đã dọn; CSV và số liệu lịch sử vẫn giữ. Để tạo lại ảnh trung gian phải dùng đúng `detect.py`, `geometry.py` và cấu hình của lần chạy đó; các bản sao nằm trong `source/` và `config.json`. Nếu đã thay đổi thuật toán, khôi phục các file này về vị trí tương ứng trước khi tái tạo. Giữ `evaluate.py` hiện tại để đọc được đường dẫn ảnh trong processed; không chạy trực tiếp file snapshot từ thư mục artifacts.
 
 Mỗi lần chạy sinh một thư mục mới. `batch/latest.json` chỉ cập nhật khi hoàn tất; nếu ngắt giữa chừng, kiểm tra đường dẫn được in khi khởi chạy và `run_info.json`, không nhầm với lần chạy hoàn tất trước đó. Batch hiện chưa có chức năng tiếp tục từ điểm dừng.
 
