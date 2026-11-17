@@ -31,16 +31,24 @@ def polygon_iou(first, second):
     return float(np.clip(intersection / union, 0, 1)) if union > 0 else 0.0
 
 
-def score_candidate(points, contour, distances, width, height):
+def score_candidate(points, contour, distances, width, height, details=None):
+    # details chỉ ghi chẩn đoán; không tham gia quyết định chọn khung.
+    if details is None:
+        details = {}
     area = cv2.contourArea(points)
     area_ratio = area / (width * height)
+    details["area_ratio"] = float(area_ratio)
     if not CONFIG["min_area_ratio"] <= area_ratio <= CONFIG["max_area_ratio"]:
+        details["reason"] = "polygon_area"
         return None
     if ((points[:, 0] <= 3).any() or (points[:, 0] >= width - 4).any()
             or (points[:, 1] <= 3).any() or (points[:, 1] >= height - 4).any()):
+        details["reason"] = "image_boundary"
         return None
     lengths = np.linalg.norm(points - np.roll(points, -1, axis=0), axis=1)
+    details["min_edge_length"] = float(lengths.min())
     if lengths.min() < CONFIG["min_edge_length"]:
+        details["reason"] = "short_edge"
         return None
     supports = []
     for index in range(4):
@@ -50,16 +58,20 @@ def score_candidate(points, contour, distances, width, height):
         ys = np.round(samples[:, 1]).astype(int)
         supports.append(np.mean(distances[ys, xs] <= CONFIG["edge_distance"]))
     edge_support = float(np.mean(supports))
+    details["edge_support"] = edge_support
+    details["edge_support_per_side"] = [float(value) for value in supports]
     if edge_support < CONFIG["min_edge_support"]:
+        details["reason"] = "weak_edge_support"
         return None
     contour_area = cv2.contourArea(contour)
     fit = min(area, contour_area) / max(area, contour_area)
     area_score = min(area_ratio / 0.35, 1.0)
+    details.update(reason="accepted", fit=float(fit), area_score=float(area_score))
     # Điểm so sánh ứng viên, không phải xác suất dự đoán đúng.
     return 4 * edge_support + 2 * fit + area_score
 
 
-def detect_document(image):
+def detect_document(image, diagnostics=False):
     result = {
         "corners": None, "score": None, "method": None,
         "status": "invalid_input", "warnings": [], "debug": {},
@@ -81,23 +93,65 @@ def detect_document(image):
     _, mask = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
     distances = cv2.distanceTransform(255 - edges, cv2.DIST_L2, 3)
+    branches = [("canny", closed_edges, distances), ("otsu", mask, distances)]
+    if CONFIG.get("enhanced_proposals", False):
+        # Cạnh giấy nhạt có thể biến mất với ngưỡng Canny cũ. Xét thêm
+        # ảnh xám và các kênh màu; không cần nhãn hay OCR để sinh khung.
+        lab = cv2.cvtColor(resized, cv2.COLOR_BGR2LAB)
+        channels = [("gray_low", gray), ("lab_b", lab[:, :, 2])]
+        for name, channel in channels:
+            smooth = cv2.GaussianBlur(channel, (3, 3), 0)
+            extra_edges = cv2.Canny(smooth, CONFIG["extra_canny_low"], CONFIG["extra_canny_high"])
+            closed = cv2.morphologyEx(extra_edges, cv2.MORPH_CLOSE, kernel)
+            extra_distances = cv2.distanceTransform(255 - extra_edges, cv2.DIST_L2, 3)
+            branches.append((name, closed, extra_distances))
     candidates = []
-    for method, binary in (("canny", closed_edges), ("otsu", mask)):
+    trace = []
+    hull_trace = []
+    branch_counts = {}
+    for method, binary, branch_distances in branches:
         contours, _ = cv2.findContours(binary, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-        contours = sorted(contours, key=cv2.contourArea, reverse=True)[:CONFIG["max_contours"]]
-        for contour in contours:
+        contours = sorted(contours, key=cv2.contourArea, reverse=True)
+        counts = {"contours_total": len(contours), "below_min_area": 0,
+                  "large_contours_outside_top_k": 0, "not_convex_quad_attempts": 0}
+        branch_counts[method] = counts
+        if not diagnostics:
+            contours = contours[:CONFIG["max_contours"]]
+        for rank, contour in enumerate(contours):
             if cv2.contourArea(contour) < CONFIG["min_area_ratio"] * width * height:
+                counts["below_min_area"] += 1
                 continue
+            outside_top_k = rank >= CONFIG["max_contours"]
+            if outside_top_k:
+                counts["large_contours_outside_top_k"] += 1
             hull = cv2.convexHull(contour)
+            if diagnostics:
+                hull_trace.append({"method": method, "contour_rank": rank + 1,
+                                   "points": hull.reshape(-1, 2).tolist()})
             perimeter = cv2.arcLength(hull, True)
             for epsilon in CONFIG["epsilon_ratios"]:
                 polygon = cv2.approxPolyDP(hull, epsilon * perimeter, True)
                 if len(polygon) != 4 or not cv2.isContourConvex(polygon):
+                    counts["not_convex_quad_attempts"] += 1
                     continue
                 points = order_points(polygon.reshape(4, 2))
-                score = score_candidate(points, contour, distances, width, height)
-                if score is not None:
-                    candidates.append({"points": points, "score": score, "method": method})
+                details = {}
+                score = score_candidate(points, contour, branch_distances, width, height, details)
+                if score is not None and method not in ("canny", "otsu"):
+                    # Một cạnh mạnh không đủ bù cho ba cạnh không có bằng chứng.
+                    if min(details["edge_support_per_side"]) < CONFIG["extra_min_side_support"]:
+                        details["reason"] = "weak_side_support"
+                        score = None
+                if diagnostics:
+                    trace.append({
+                        "method": method, "contour_rank": rank + 1, "epsilon": epsilon,
+                        "points": points.tolist(), "score": float(score) if score is not None else None,
+                        **details, "reason": "contour_rank" if outside_top_k else details["reason"],
+                        "score_filter_reason": details["reason"],
+                    })
+                if score is not None and not outside_top_k:
+                    candidates.append({"points": points, "score": score, "method": method,
+                                       "details": details})
 
     # Giữ cách chọn khung của bản v2; thêm cảnh báo để người dùng kiểm tra.
     candidates.sort(key=lambda item: item["score"], reverse=True)
@@ -105,12 +159,24 @@ def detect_document(image):
         "resized": resized, "edges": closed_edges, "mask": mask,
         "candidates": [item["points"] for item in candidates],
     }
+    if diagnostics:
+        result["debug"].update(candidate_trace=trace, contour_hulls=hull_trace,
+                               branch_counts=branch_counts, raw_edges=edges)
     result["candidate_count"] = len(candidates)
     result["blur_score"] = float(cv2.Laplacian(gray, cv2.CV_64F).var())
     result["status"] = "no_candidate"
     if not candidates:
         return result
     best = candidates[0]
+    result["quality"] = best["details"].copy()
+    # Điểm là tổng các bằng chứng hình học, không phải xác suất. Cho phép
+    # trả về không có khung khi mọi ứng viên đều yếu, để pipeline thử vùng chữ.
+    if best["score"] < CONFIG.get("min_candidate_score", 0.0):
+        result.update(status="low_confidence", score=float(best["score"]), method=best["method"])
+        result["warnings"].append("weak_candidate_rejected")
+        return result
+    if best["score"] < CONFIG.get("review_candidate_score", 0.0):
+        result["warnings"].append("weak_candidate")
     if result["blur_score"] < CONFIG["blur_warning_threshold"]:
         result["warnings"].append("blur")
     # Cùng một khung có thể xuất hiện nhiều lần; chỉ so với khung khác rõ rệt.

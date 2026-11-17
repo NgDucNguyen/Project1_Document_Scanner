@@ -6,6 +6,8 @@ Cập nhật ngày 09/11/2026: ảnh kết quả cũ đã dọn; tài liệu và
 
 | Mục đích | File |
 | --- | --- |
+| Theo dõi cải thiện scanner và kết quả ngày 1 | [Kế hoạch 7 ngày cải thiện scanner](ke_hoach_7_ngay_cai_thien_scanner.md) |
+| Xem kết quả detect đủ 24.889 ảnh ngày 17/11/2026 | [scanner_full_detection_summary.csv](results/scanner_full_detection_summary.csv) |
 | Đọc báo cáo tuần 2 | [week2_report.md](week2_report.md) |
 | Đọc kết quả OCR tiếng Anh và cách chạy | [week3_ocr_report.md](week3_ocr_report.md) |
 | Thử OCR trên ảnh và file TXT của bạn | [thu_ocr_mot_anh.md](guides/thu_ocr_mot_anh.md) |

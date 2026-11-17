@@ -74,8 +74,13 @@ def estimate_text_angle(image):
     return 0.0 if abs(angle) < 0.3 else angle
 
 
-def crop_content(image, language, tessdata_dir=None):
+def crop_content(image, language, tessdata_dir=None, method="tesseract"):
     """Xoay gần thẳng và cắt bao quanh chữ; không giả lập bốn góc trang."""
+    if method == "dbnet":
+        from scanner.text_regions import crop_dbnet_content
+        return crop_dbnet_content(image)
+    if method != "tesseract":
+        raise ValueError("Phương pháp vùng chữ phải là tesseract hoặc dbnet.")
     height, width = image.shape[:2]
     proposed_angle = estimate_text_angle(image)
     # Không giả định mọi đường ngang đều là dòng chữ: thử đọc cả ảnh gốc.

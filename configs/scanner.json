@@ -1,5 +1,11 @@
 {
-  "version": "week2_v3",
+  "version": "scanner_day3_v2",
+  "enhanced_proposals": true,
+  "extra_canny_low": 5,
+  "extra_canny_high": 20,
+  "extra_min_side_support": 0.35,
+  "min_candidate_score": 5.0,
+  "review_candidate_score": 5.75,
   "max_detection_size": 1000,
   "canny_low": 20,
   "canny_high": 60,

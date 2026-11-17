@@ -13,6 +13,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src/document_scanner/scanner"))
 from detect import detect_document, order_points, polygon_iou
+from detect import CONFIG
 from geometry import build_scan, validate_corners
 from evaluate import score_results
 import evaluate
@@ -21,6 +22,28 @@ import scan
 
 
 class ScannerTests(unittest.TestCase):
+    def test_weak_candidate_is_rejected_without_returning_corners(self):
+        image = np.zeros((180, 240, 3), np.uint8)
+        cv2.rectangle(image, (40, 35), (200, 145), (255, 255, 255), -1)
+        with patch.dict(CONFIG, {"min_candidate_score": 100.0}):
+            result = detect_document(image)
+        self.assertGreater(result["candidate_count"], 0)
+        self.assertEqual(result["status"], "low_confidence")
+        self.assertIsNone(result["corners"])
+        self.assertIn("weak_candidate_rejected", result["warnings"])
+
+    def test_review_candidate_still_has_corners_and_diagnostics_do_not_change_selection(self):
+        image = np.zeros((180, 240, 3), np.uint8)
+        cv2.rectangle(image, (40, 35), (200, 145), (255, 255, 255), -1)
+        with patch.dict(CONFIG, {"min_candidate_score": 0.0, "review_candidate_score": 100.0}):
+            normal = detect_document(image)
+            diagnostic = detect_document(image, diagnostics=True)
+        self.assertEqual(normal["status"], "uncertain")
+        self.assertIn("weak_candidate", normal["warnings"])
+        self.assertIsNotNone(normal["corners"])
+        np.testing.assert_array_equal(normal["corners"], diagnostic["corners"])
+        self.assertEqual(normal["score"], diagnostic["score"])
+
     def setUp(self):
         self.image = np.zeros((80, 120, 3), np.uint8)
         self.corners = np.array([[10, 10], [100, 10], [100, 60], [10, 60]], np.float32)

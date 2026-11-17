@@ -8,6 +8,11 @@
 
 ## Mở nhanh kết quả hiện có
 
+- [Kế hoạch cải thiện scanner và mốc so sánh 200 ảnh ngày 17/11/2026](docs/ke_hoach_7_ngay_cai_thien_scanner.md#ngày-1--đã-hoàn-thành-ngày-17112026).
+- Scanner ngày 3: đạt **2.424/3.192 ảnh validation (75,94%)**, so với 1.931 ảnh trước đây. [Chi tiết thay đổi và giới hạn](docs/ke_hoach_7_ngay_cai_thien_scanner.md) · [Bảng so sánh](docs/results/scanner_day3_metrics.csv). Nền 5 vẫn chưa đạt.
+- Đã kiểm tra detect đủ **24.889 ảnh** ngày 17/11/2026: tìm được 20.503 khung (82,38%), không có lỗi xử lý. Train đạt IoU ≥ 0,9 ở 76,40% ảnh; test chỉ lưu dự đoán, chưa chấm IoU. [Thống kê toàn bộ dữ liệu](docs/results/scanner_full_detection_summary.csv). Lượt này không tạo ảnh scan và không chạy OCR.
+- Ngày 4 đã thử DBNet cho vùng chữ dự phòng trên 54 ảnh. **Giữ Tesseract làm mặc định** vì bản DBNet thử còn mất nội dung. [Bảng so sánh từng ảnh](docs/results/scanner_day4_comparison.csv). Cờ `--content-method dbnet` chỉ dành cho thử nghiệm và cần mô hình ONNX cục bộ.
+
 Lần chạy ngày 24/10/2026 đã xử lý 24.889 ảnh, trong đó tạo 18.571 ảnh scan. **Ảnh kết quả cũ đã được dọn khỏi máy**; các con số vẫn được giữ trong báo cáo lịch sử. Muốn có ảnh mới cần chạy lại scanner.
 
 - [Báo cáo tuần 2 và số liệu lịch sử](docs/week2_report.md).
