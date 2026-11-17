@@ -1,3 +1,5 @@
+> H? s? l?ch s? tr??c khi g?p c?u tr?c. D?ng README g?c v? b?o c?o hi?n t?i ?? ch?y ch??ng tr?nh; c?c l?nh v? ???ng d?n k?t qu? c? c? th? ?? chuy?n v?o `artifacts/history/`.
+
 # Kết quả chuẩn bị dữ liệu tuần 1
 
 Ngày kiểm tra: 24/10/2026. Bộ dữ liệu: SmartDoc 2015 Challenge 1, bản frames v2.0.0.
@@ -49,6 +51,6 @@ Cần bổ sung kiểm tra trực quan các trang chưa xem. Số frame lớn kh
 
 ## Đầu vào cho tuần 2
 
-Dùng ảnh gốc và `data/interim/manifest_with_split.csv` để phát triển tìm góc và nắn ảnh. Dùng validation để chọn tham số; giữ test cho đánh giá cuối. So góc dự đoán với nhãn nguồn để đo chất lượng. Hướng dẫn tái tạo đầu ra nằm trong [phase1_data.md](guides/phase1_data.md).
+Dùng ảnh gốc và `data/interim/manifest_with_split.csv` để phát triển tìm góc và nắn ảnh. Dùng validation để chọn tham số; giữ test cho đánh giá cuối. So góc dự đoán với nhãn nguồn để đo chất lượng. Hướng dẫn tái tạo đầu ra nằm trong [phase1_data.md](../guides/phase1_data.md).
 
 Ảnh, dữ liệu gốc và CSV sinh ra chỉ lưu trên máy. Repository chứa code, hướng dẫn và báo cáo số liệu.

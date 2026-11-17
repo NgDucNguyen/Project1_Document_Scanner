@@ -13,7 +13,7 @@ from detect import detect_document, polygon_iou
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 SMARTDOC_ROOT = PROJECT_ROOT / "data" / "raw" / "smartdoc"
 MANIFEST_PATH = PROJECT_ROOT / "data" / "interim" / "manifest_with_split.csv"
-BATCH_ROOT = PROJECT_ROOT / "artifacts" / "week2" / "batch"
+BATCH_ROOT = PROJECT_ROOT / "artifacts" / "scans"
 
 
 def resolve_scan_path(row, run_folder):
@@ -85,7 +85,7 @@ def select_examples(report):
     return pd.concat(selected)
 
 
-def make_examples(report, run_folder):
+def make_examples(report, run_folder, method="classic"):
     examples_folder = run_folder / "examples"
     examples_folder.mkdir(exist_ok=True)
     selected = select_examples(report)
@@ -95,14 +95,19 @@ def make_examples(report, run_folder):
         folder = examples_folder / (str(number).zfill(2) + "_" + label)
         folder.mkdir(exist_ok=True)
         image = cv2.imread(str(SMARTDOC_ROOT / row.image_path))
-        detection = detect_document(image)
+        detection = detect_document(image, method=method)
         debug = detection["debug"]
+        if "resized" not in debug:
+            factor = min(1.0, 1000 / max(image.shape[:2]))
+            debug["resized"] = cv2.resize(image, None, fx=factor, fy=factor)
         # Nguồn được tham chiếu trong JSON; chỉ lưu bản thu nhỏ để minh họa.
         cv2.imwrite(str(folder / "01_input.jpg"), debug["resized"])
-        cv2.imwrite(str(folder / "02_edges.png"), debug["edges"])
-        cv2.imwrite(str(folder / "03_mask.png"), debug["mask"])
+        if "edges" in debug:
+            cv2.imwrite(str(folder / "02_edges.png"), debug["edges"])
+        if "mask" in debug:
+            cv2.imwrite(str(folder / "03_mask.png"), debug["mask"])
         candidates = debug["resized"].copy()
-        for points in debug["candidates"]:
+        for points in debug.get("candidates", []):
             cv2.polylines(candidates, [points.astype(np.int32).reshape(-1, 1, 2)],
                           True, (0, 180, 255), 1)
         cv2.imwrite(str(folder / "04_candidates.jpg"), candidates)
@@ -172,11 +177,11 @@ def main():
     if args.examples:
         # Không tạo debug bằng code khác phiên bản đã chạy batch.
         import hashlib
-        for name in ("detect.py", "geometry.py"):
+        for name in ("detect.py", "geometry.py", "classic.py", "docaligner.py"):
             current = hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
-            if current != info["source_sha256"][name]:
+            if current != info["source_sha256"].get(name):
                 raise ValueError("Code đã đổi; dùng snapshot của batch để tạo minh họa.")
-        make_examples(report, run_folder)
+        make_examples(report, run_folder, method=info.get("scanner_method", "classic"))
     print(json.dumps(summaries, ensure_ascii=False, indent=2))
     print("Đã lưu:", output)
     print("Không tính điểm test; không đưa kết quả sửa tay vào chỉ số tự động.")

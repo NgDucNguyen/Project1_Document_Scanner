@@ -14,7 +14,7 @@ import cv2
 import numpy as np
 import pandas as pd
 
-from detect import CONFIG, CONFIG_PATH, detect_document, polygon_iou
+from detect import CONFIG, CONFIG_PATH, detect_document, polygon_iou, detector_info
 
 ROOT = Path(__file__).resolve().parents[3]
 MANIFEST = ROOT / "data/interim/manifest_with_split.csv"
@@ -81,9 +81,12 @@ def summarize(frame):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--run-name", default="full_detection_day3")
+    parser.add_argument("--run-name", required=True)
+    parser.add_argument("--method", choices=["docaligner", "classic"], default=CONFIG["default_method"])
     parser.add_argument("--workers", type=int, default=4)
     args = parser.parse_args()
+    CONFIG["default_method"] = args.method
+    model_info = detector_info()
     if args.workers < 1 or not args.run_name or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-" for c in args.run_name):
         parser.error("Tên lần chạy chỉ gồm chữ/số/_/- và workers phải lớn hơn 0.")
     output = ROOT / "artifacts/scanner_dev" / args.run_name
@@ -94,7 +97,7 @@ def main():
         raise ValueError("Manifest rỗng, trùng ảnh hoặc có dòng không hợp lệ.")
     source = output / "source"
     source.mkdir(parents=True)
-    for name in ("detect.py", "benchmark_detection.py"):
+    for name in ("detect.py", "classic.py", "docaligner.py", "geometry.py", "benchmark_detection.py"):
         shutil.copy2(Path(__file__).with_name(name), source / name)
     shutil.copy2(CONFIG_PATH, source / "scanner.json")
     shutil.copy2(MANIFEST, output / "manifest.csv")
@@ -105,6 +108,7 @@ def main():
             "test_scored": False, "manifest_sha256": hashlib.sha256(MANIFEST.read_bytes()).hexdigest(),
             "source_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in source.iterdir()}}
     info_path = output / "run_info.json"
+    info.update(model_info)
     info_path.write_text(json.dumps(info, indent=2), encoding="utf-8")
     cv2.setNumThreads(1)
     started = time.perf_counter()
@@ -128,7 +132,6 @@ def main():
         raise AssertionError("Không được chấm nhãn test.")
     summary = summarize(frame)
     summary.to_csv(output / "summary.csv", index=False)
-    summary.to_csv(ROOT / "docs/results/scanner_full_detection_summary.csv", index=False)
     info.update(complete=True, finished_at=datetime.now().astimezone().isoformat(),
                 images=len(frame), wall_seconds=time.perf_counter() - started,
                 detected=int(frame.detected.sum()), status_counts=frame.status.value_counts().to_dict())

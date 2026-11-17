@@ -1,71 +1,58 @@
-# Phần 2 — Tìm góc và nắn tài liệu
+# Scanner: phương pháp và cách sử dụng
 
-## Luồng xử lý
+## Hai phương pháp, cùng đầu ra
 
-Ảnh màu gốc → bản thu nhỏ cạnh dài tối đa 1.000 px → hai nhánh Canny và Otsu → tìm contour → lấy bao lồi → thử xấp xỉ bốn đỉnh → chấm điểm → đưa góc về ảnh gốc → kiểm tra hình học → nắn phối cảnh → lưu PNG và JSON.
+`detect.py` là điểm gọi chung, chọn theo `configs/scanner.json` hoặc tham số dòng lệnh.
 
-Không dùng nhãn để tìm góc. Nhãn chỉ được đọc khi chấm IoU hoặc vẽ khung chuẩn để so sánh.
+| Phương pháp | File | Xác định góc bằng gì? |
+| --- | --- | --- |
+| `docaligner`, mặc định | `docaligner.py` | Mô hình FastViT-T8 đã huấn luyện sẵn sinh bốn heatmap; ngưỡng hóa/Otsu và lấy trọng tâm |
+| `classic`, đối chứng | `classic.py` | Canny/Otsu, cạnh xám/Lab, contour, convex hull, xấp xỉ tứ giác và chấm điểm |
 
-## Các lệnh thường dùng
+Hai cách đều trả tọa độ trên ảnh gốc cho `geometry.py` nắn phối cảnh. Không dùng nhãn thật để tìm hoặc chọn khung. Nhãn chỉ dùng để chấm điểm ngoại tuyến.
 
-Chạy tại gốc dự án với venv đã kích hoạt:
+## Chạy một ảnh qua scanner và OCR
 
 ```powershell
-# Toàn bộ ảnh, bốn ảnh xử lý đồng thời.
-python -X utf8 -u src/document_scanner/scanner/scan.py --split all --workers 4
-
-# Chấm train/validation và xuất 10 ca minh họa.
-python -X utf8 src/document_scanner/scanner/evaluate.py --examples
-
-# Chỉ quét train + validation khi phát triển các tuần sau.
-python -X utf8 -u src/document_scanner/scanner/scan.py --split dev --workers 4
-
-# Mở một ảnh để xem/sửa góc và xoay.
-python -X utf8 src/document_scanner/scanner/manual_scan.py --image data/raw/smartdoc/background04/letter001/frame_0001.jpeg
-
-# Kiểm tra các lỗi quan trọng.
-python -X utf8 -B -m unittest discover -s tests -v
+python -X utf8 src/document_scanner/pipeline.py --image "data/raw/thu_ocr/anh.jpg"
+python -X utf8 src/document_scanner/pipeline.py --image "data/raw/thu_ocr/anh.jpg" --scanner-method classic
 ```
 
-Để chấm một lần chạy cũ, thêm `--run artifacts/week2/batch/<run_id>`. Ảnh và JSON từng ảnh của lượt cũ đã dọn; CSV và số liệu lịch sử vẫn giữ. Để tạo lại ảnh trung gian phải dùng đúng `detect.py`, `geometry.py` và cấu hình của lần chạy đó; các bản sao nằm trong `source/` và `config.json`. Nếu đã thay đổi thuật toán, khôi phục các file này về vị trí tương ứng trước khi tái tạo. Giữ `evaluate.py` hiện tại để đọc được đường dẫn ảnh trong processed; không chạy trực tiếp file snapshot từ thư mục artifacts.
+Mỗi lệnh tạo một thư mục `data/processed/pipeline/<run_id>/` với ảnh, TXT và metadata. Khi thiếu góc hoặc khung có dấu hiệu mất chữ, pipeline dùng Tesseract tìm vùng chữ dự phòng. Batch `scan.py` không chạy cắt dự phòng hoặc OCR.
 
-Mỗi lần chạy sinh một thư mục mới. `batch/latest.json` chỉ cập nhật khi hoàn tất; nếu ngắt giữa chừng, kiểm tra đường dẫn được in khi khởi chạy và `run_info.json`, không nhầm với lần chạy hoàn tất trước đó. Batch hiện chưa có chức năng tiếp tục từ điểm dừng.
+## Detect toàn bộ, không tạo ảnh
 
-## Hiểu các trạng thái
+```powershell
+python -X utf8 src/document_scanner/scanner/benchmark_detection.py --method docaligner --run-name doc_full_v2 --workers 4
+python -X utf8 src/document_scanner/scanner/benchmark_detection.py --method classic --run-name classic_full_v2 --workers 4
+```
 
-| Trường | Giá trị | Ý nghĩa |
-| --- | --- | --- |
-| status | ok | Có ứng viên qua bộ lọc và chưa gặp cảnh báo hiện có; không bảo đảm đúng giấy |
-| status | uncertain | Có ứng viên nhưng ảnh có dấu hiệu mờ hoặc hai vùng khác nhau có điểm gần nhau |
-| status | no_candidate | Không có tứ giác qua bộ lọc |
-| status | unreadable_image / processing_error | Không đọc được ảnh hoặc gặp lỗi xử lý; vẫn giữ bản ghi |
-| scan_created | True | Đã ghi PNG; không phải nhãn chất lượng |
-| passed | True | Khung đạt IoU ≥ 0,9 và đã tạo ảnh scan, chỉ có trong kết quả chấm train/val |
+Kết quả `artifacts/scanner_dev/<run_name>/`: mỗi ảnh một dòng trong `results.csv`, tổng hợp trong `summary.csv`. Chỉ chấm train/val, không chấm test. Không ghi đè tên đã có, không tự cập nhật bảng kết luận cũ trong docs.
 
-Ngưỡng cảnh báo mờ là phương sai Laplacian dưới 30 trên ảnh thu nhỏ. Cảnh báo mơ hồ khi hai ứng viên khác vùng có chênh điểm không quá 0,15. Đây là quy tắc khởi đầu, chưa được hiệu chỉnh thành xác suất đúng. Ảnh uncertain vẫn được lưu để xem; không được lặng lẽ tính thành ảnh đạt.
+## Tạo ảnh scan theo lô
 
-## Sửa góc mà không lật gương
+```powershell
+python -X utf8 src/document_scanner/scanner/scan.py --method docaligner --split val --limit 20 --workers 4
+python -X utf8 src/document_scanner/scanner/evaluate.py
+```
 
-Nếu có dự đoán, cửa sổ hiển thị sẵn bốn góc. Khi sai, bấm R rồi chọn đúng bốn đỉnh giấy. Chương trình sắp các điểm quanh tâm theo cùng một chiều và đánh số 0–3. Bấm P xem trước; nếu chữ nằm ngang hoặc ngược đầu, bấm E đến khi đúng hướng, sau đó S để lưu.
+Ảnh ở `data/processed/scan/<run_id>/`; bảng và metadata ở `artifacts/scans/<run_id>/`. Bỏ `--limit` nếu cần xử lý cả tập đã chọn. `--split all` gồm đủ 24.889 ảnh. `evaluate.py` chấm IoU train/val cho lượt scan hoàn thành gần nhất; `--run` chọn lượt khác. Tùy chọn `--examples` chỉ dùng nếu snapshot khớp mã hiện tại.
 
-Sắp thứ tự hình học chỉ ngăn tráo điểm/lật gương, chưa biết đâu là đầu trang theo nội dung. Bộ quét tự động hiện chưa nhận dạng hướng chữ. Ảnh tương tác lưu trong `data/processed/manual/<run_id>/`; góc trước/sau và thông tin có sửa tay hay không nằm ở `artifacts/week2/manual/<run_id>/corners.json`.
+## Trạng thái và giới hạn
 
-## Đầu ra và ma trận
+- `ok`: có khung, chưa có cảnh báo của phương pháp; không bảo đảm đúng tài liệu.
+- `uncertain`: có khung nhưng cần kiểm tra. DocAligner hiện báo `document_presence_not_verified` vì chưa đánh giá đủ ảnh không có tài liệu. Classic có cảnh báo mờ, khung cạnh tranh hoặc điểm yếu.
+- `no_candidate`: chưa tìm được bốn góc phù hợp.
+- `low_confidence`: classic có ứng viên nhưng điểm dưới 5,0, từ chối trả góc.
+- `content_fallback`: pipeline dùng vùng chữ, không phải mép trang giấy.
+- `unreadable_image`/`processing_error`: lỗi đọc hoặc xử lý.
 
-Ảnh tự động lưu ở `data/processed/scan/<run_id>/<split>/<background>/<model>/`. Trong `artifacts/week2/batch/<run_id>/`, `metadata/` giữ JSON từng ảnh, `results.csv` giữ danh sách kết quả, `evaluation/` giữ điểm đánh giá và `examples/` giữ hình minh họa các bước. Không cần tìm ảnh cuối giữa hàng nghìn JSON nữa.
+IoU = diện tích giao / diện tích hợp của khung dự đoán và nhãn. Detect-only đạt khi IoU ≥ 0,9; đánh giá ảnh scan yêu cầu thêm nắn/lưu thành công. IoU không đo độ nét hoặc lỗi OCR. Bốn góc hình học không tự biết đầu trang theo chữ; nắn phối cảnh không tự phục hồi chữ bị che hoặc đã ra ngoài ảnh.
 
-`scan_path` tính từ gốc dự án khi `scan_path_base=project`; `metadata_path` tính từ thư mục batch. Bộ đánh giá vẫn đọc được đường dẫn ảnh kiểu cũ (tính từ batch) nếu dùng kết quả cũ chưa chuyển.
+## Sửa góc bằng tay khi cần
 
-Mỗi ảnh có JSON chứa đường dẫn nguồn, trạng thái, điểm ứng viên, cảnh báo, thời gian. Ảnh nắn được có thêm bốn góc gốc, PNG, ma trận H từ ảnh gốc tới ảnh nắn và T từ ảnh gốc tới ảnh sau xoay. Khi chưa xoay, H và T giống nhau.
+```powershell
+python -X utf8 src/document_scanner/scanner/manual_scan.py --image "data/raw/thu_ocr/anh.jpg"
+```
 
-Kích thước ảnh nắn ước lượng bằng cạnh dài hơn của mỗi cặp cạnh đối diện. Chưa biết tỷ lệ vật lý thật của giấy nên không khẳng định kích thước chuẩn A4. Không tự cắt thêm lề, làm trắng nền hoặc tăng độ rõ ở tuần 2.
-
-IoU = diện tích giao của hai tứ giác / diện tích hợp. Không tìm được giấy tính IoU bằng 0. Chỉ số đo vị trí khung, không đo chữ có bị ngược đầu, mờ, mất nét hay OCR đúng.
-
-## Lưu trữ và thời gian
-
-Bản gốc chỉ giữ một lần trong `data/raw/`; không sao chép ảnh gốc cho từng đầu ra. PNG được nén mức 1 để giảm thời gian ghi, vẫn không mất chất lượng do nén. Chỉ 10 ca minh họa có đầy đủ ảnh trung gian để tránh lưu dư hàng trăm nghìn file.
-
-`detection_ms`: thời gian tìm góc. `warp_ms`: thời gian nắn ảnh. `total_ms`: đọc ảnh + tìm góc + nắn + ghi PNG, chưa tính ghi JSON. `wall_seconds`: thời gian cả vòng batch gồm ghi CSV/JSON. Chạy bốn workers là xử lý đồng thời bốn ảnh, không thay đổi thuật toán và không huấn luyện mô hình.
-
-Xem [báo cáo tuần 2](../week2_report.md) để lấy số liệu và phân tích lỗi.
+`R` chọn lại góc, `P` xem trước, `E` xoay 90 độ, `S` lưu, `Q`/Esc thoát. Ảnh ở `data/processed/manual/`, metadata ở `artifacts/manual/`. Không cần sửa tay toàn bộ dữ liệu; kết quả sửa tay không được gộp vào chỉ số tự động.

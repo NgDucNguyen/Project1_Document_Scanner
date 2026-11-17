@@ -12,8 +12,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src/document_scanner/scanner"))
-from detect import detect_document, order_points, polygon_iou
-from detect import CONFIG
+from classic import detect_document, order_points, polygon_iou, CONFIG
 from geometry import build_scan, validate_corners
 from evaluate import score_results
 import evaluate

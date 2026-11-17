@@ -11,7 +11,7 @@ from detect import detect_document, order_points
 from geometry import build_scan
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-OUTPUT_ROOT = PROJECT_ROOT / "artifacts" / "week2" / "manual"
+OUTPUT_ROOT = PROJECT_ROOT / "artifacts" / "manual"
 PROCESSED_ROOT = PROJECT_ROOT / "data" / "processed" / "manual"
 
 

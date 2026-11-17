@@ -1,10 +1,12 @@
+> H? s? l?ch s? tr??c khi g?p c?u tr?c. D?ng README g?c v? b?o c?o hi?n t?i ?? ch?y ch??ng tr?nh; c?c l?nh v? ???ng d?n k?t qu? c? c? th? ?? chuy?n v?o `artifacts/history/`.
+
 # Báo cáo tuần 2 tìm khung và nắn tài liệu
 
 **Sinh viên:** Nguyễn Đức Nguyên · **MSSV:** 202416305 · **Trường:** Đại học Bách khoa Hà Nội  
 **Ngày tổng hợp:** 24/10/2026 · **Phiên bản:** week2_v3  
 **Phạm vi:** Bộ quét bằng OpenCV; chưa thực hiện nhận dạng chữ OCR.
 
-Ghi chú sắp xếp ngày 25/10/2026: các hướng dẫn đã chuyển vào docs/guides; thư mục history được nén thành artifacts/week2/history.zip. Số liệu và ảnh của lần chạy đầy đủ giữ nguyên. Bản Word ngày 24/10 giữ nguyên như hồ sơ đã bàn giao; đường dẫn hướng dẫn cũ trong bản đó tra theo [mục lục hiện tại](README.md).
+Ghi chú sắp xếp ngày 25/10/2026: các hướng dẫn đã chuyển vào docs/guides; thư mục history được nén thành artifacts/week2/history.zip. Số liệu và ảnh của lần chạy đầy đủ giữ nguyên. Bản Word ngày 24/10 giữ nguyên như hồ sơ đã bàn giao; đường dẫn hướng dẫn cũ trong bản đó tra theo [mục lục hiện tại](../README.md).
 
 **Cập nhật dọn dữ liệu ngày 09/11/2026:** ảnh scan, ảnh thử và JSON từng ảnh của lượt cũ đã xóa để chuẩn bị cải thiện scanner. Các con số và biên bản trong báo cáo phản ánh trạng thái của lần chạy trước khi dọn, không có nghĩa là các ảnh đó còn trên máy. Dữ liệu gốc, manifest, CSV tổng hợp và snapshot quan trọng vẫn được giữ. Chạy lại scanner để tạo ảnh và JSON mới.
 

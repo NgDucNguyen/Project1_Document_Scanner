@@ -1,53 +1,25 @@
 # Mục lục tài liệu
 
-Cập nhật ngày 09/11/2026: ảnh kết quả cũ đã dọn; tài liệu và bảng số liệu lịch sử được giữ lại. Dữ liệu gốc vẫn ở `data/raw/` trên máy.
+**Cập nhật 17/11/2026:** DocAligner đã là scanner mặc định; Canny/Otsu giữ để đối chứng. Đã chạy detect toàn bộ SmartDoc, giữ Tesseract/FUNSD cho OCR và hoàn tất dọn các lượt thử cũ sau xác nhận của người dùng. Kiểm thử ảnh mới/tiếng Việt/ảnh không có giấy là việc tiếp theo.
 
-## Bạn cần mở gì
+Chỉ cần mở:
 
-| Mục đích | File |
-| --- | --- |
-| Theo dõi cải thiện scanner và kết quả ngày 1 | [Kế hoạch 7 ngày cải thiện scanner](ke_hoach_7_ngay_cai_thien_scanner.md) |
-| Xem kết quả detect đủ 24.889 ảnh ngày 17/11/2026 | [scanner_full_detection_summary.csv](results/scanner_full_detection_summary.csv) |
-| Đọc báo cáo tuần 2 | [week2_report.md](week2_report.md) |
-| Đọc kết quả OCR tiếng Anh và cách chạy | [week3_ocr_report.md](week3_ocr_report.md) |
-| Thử OCR trên ảnh và file TXT của bạn | [thu_ocr_mot_anh.md](guides/thu_ocr_mot_anh.md) |
-| Cài đặt và chạy chương trình | [README gốc](../README.md) |
-| Xem so sánh 20 ảnh RDTAG | [rdtag_development_comparison.csv](results/rdtag_development_comparison.csv) |
+1. [Báo cáo scanner hiện tại và kế hoạch](ke_hoach_7_ngay_cai_thien_scanner.md).
+2. [Bảng so sánh Canny/Otsu với DocAligner](results/scanner_comparison.csv).
+3. [README gốc: cài đặt, chạy và cấu trúc](../README.md).
 
-## Cấu trúc hiện tại
+## Hướng dẫn khi cần
 
-```text
-docs/
-├── README.md                 # Mục lục bạn đang đọc
-├── week1_report.md           # Kết quả chuẩn bị dữ liệu tuần 1
-├── week2_report.md           # Báo cáo tuần 2 chi tiết
-├── week3_ocr_report.md       # Huấn luyện, đánh giá và chạy OCR tiếng Anh
-├── guides/                   # Chỉ mở khi cần hướng dẫn hoặc tra cứu
-│   ├── phase1_data.md        # Cách nạp, kiểm tra, chia tập và vẽ nhãn
-│   ├── phase2_scanner.md     # Cách chạy quét, sửa tay, chấm và hiểu trạng thái
-│   ├── thu_ocr_mot_anh.md    # Thử một ảnh và đánh giá bằng file TXT
-│   └── data_sources.md       # Nguồn cũ/mới, lý do đổi dataset và quy ước nhãn
-└── results/                  # Số liệu làm căn cứ cho báo cáo, không phải code
-    ├── week2_metrics.json        # Tổng hợp lần chạy và điểm train/validation
-    ├── week3_ocr_page_metrics.csv # Tổng hợp các lần đánh giá OCR toàn trang
-    ├── rdtag_development_comparison.csv # Kết quả thử scanner → OCR trên 20 ảnh
-    ├── week2_by_background.csv   # Số liệu theo từng nền
-    ├── week2_examples.csv        # Danh sách 10 ảnh minh họa
-    ├── week2_splits.json         # Danh sách trang gốc thuộc từng tập
-    ├── week2_verification.json   # Kết quả kiểm tra toàn bộ PNG/JSON/H/T
-    ├── week2_storage.json        # Kiểm tra chuyển PNG sang processed ngày 25/10
-    └── week2_report_check.json   # Hash và xác nhận kiểm tra bố cục Word
-```
+- [Scanner: phương pháp và trạng thái](guides/phase2_scanner.md).
+- [Thử OCR trên một ảnh](guides/thu_ocr_mot_anh.md).
+- [Chuẩn bị dữ liệu](guides/phase1_data.md).
+- [Nguồn dữ liệu](guides/data_sources.md).
 
-## Vì sao giữ các file này
+## Hồ sơ lịch sử
 
-- Báo cáo tuần 1 và tuần 2 ghi hai giai đoạn khác nhau.
-- guides là hướng dẫn thao tác và thông tin nguồn; không phải kết quả chạy thử.
-- results chứa các bảng/file tổng hợp nhỏ của tuần 2 và OCR. Chúng giúp đối chiếu số trong báo cáo mà không cần đưa ảnh gốc hay toàn bộ kết quả chi tiết lên GitHub.
-- week2_examples.csv chỉ đánh dấu 10 ảnh để minh họa. Điểm báo cáo lấy từ toàn bộ train/validation, không lấy riêng 10 ảnh đó.
+`history/` giữ báo cáo tuần 1–3, đề xuất OCR cũ, nhật ký các lượt thử và bảng số liệu trước khi chốt DocAligner. Đây là hồ sơ để đối chiếu, không phải hướng dẫn chạy hiện tại. Các tên script thử và đường dẫn cũ có thể đã được gộp hoặc chuyển chỗ.
 
-Ba file hướng dẫn trước đây nằm ngay trong docs, nay đã gom vào guides. Bản Word ngày 24/10/2026 là hồ sơ đã bàn giao nên giữ nguyên; nếu gặp đường dẫn docs/phase2_scanner.md hoặc docs/data_sources.md trong Word, thêm guides sau docs theo cây trên.
-
-Ảnh PNG và JSON từng ảnh của lượt chạy cũ đã dọn. CSV tổng hợp và các snapshot quan trọng vẫn giữ trên máy; số liệu trong báo cáo là số liệu của lượt đã chạy, không ngụ ý ảnh kết quả cũ còn tồn tại. Để tạo ảnh và JSON mới, chạy lại scanner theo README.
-
-Không cần chạy các file trong docs. Chạy chương trình ở src/document_scanner/scanner theo README.
+- [Tuần 1](history/week1_report.md).
+- [Tuần 2](history/week2_report.md).
+- [OCR tiếng Anh](history/week3_ocr_report.md).
+- [Nhật ký thử nghiệm scanner](history/scanner_experiments_2026-11-17.md).

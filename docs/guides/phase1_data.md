@@ -1,6 +1,6 @@
 # Phần 1 — Dữ liệu và kiểm tra nhãn
 
-Đã có bốn script để nạp metadata, kiểm tra dữ liệu, chia tập và vẽ nhãn. Xem [kết quả tuần 1](../week1_report.md).
+Đã có bốn script để nạp metadata, kiểm tra dữ liệu, chia tập và vẽ nhãn. Xem [kết quả tuần 1](../history/week1_report.md).
 
 ## Đầu vào hiện có
 

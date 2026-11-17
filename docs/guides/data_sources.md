@@ -1,3 +1,5 @@
+> B?n ghi quy?t ??nh d? li?u tu?n 1?2. C?p nh?t hi?n t?i: ?? c? FUNSD v? nh?n OCR ti?ng Anh; scanner m?c ??nh l? DocAligner, classic ???c gi? ??i ch?ng. Xem [b?o c?o hi?n t?i](../ke_hoach_7_ngay_cai_thien_scanner.md) ?? bi?t k?t qu? m?i.
+
 # Nguồn dữ liệu và các thay đổi của dự án
 
 Cập nhật ngày 24/10/2026. Tài liệu này phân biệt kế hoạch, lịch sử mã nguồn và dữ liệu thực tế đang có trên máy.
@@ -40,7 +42,7 @@ Việc đổi nguồn đã được chốt khi chuẩn bị tuần 1; báo cáo 
 
 ## 4. Quy tắc sử dụng các tập
 
-`model_name` là đơn vị chia. Cùng một trang trên mọi nền luôn ở cùng một tập. Danh sách nhóm thực tế lưu tại `docs/results/week2_splits.json`; manifest chi tiết vẫn ở `data/interim/manifest_with_split.csv` trên máy.
+`model_name` là đơn vị chia. Cùng một trang trên mọi nền luôn ở cùng một tập. Danh sách nhóm thực tế lưu tại `docs/history/results/week2_splits.json`; manifest chi tiết vẫn ở `data/interim/manifest_with_split.csv` trên máy.
 
 Train dùng phát triển; validation dùng đối chiếu và chọn tham số. Lượt quét đầy đủ tuần 2 xử lý cả test theo cấu hình đã chốt để tạo ảnh, nhưng không tính IoU test, không chọn ảnh test để minh họa và không dùng kết quả test để sửa thuật toán. Việc này phải được ghi lại khi đánh giá cuối kỳ; kết quả OCR cuối cùng vẫn chưa tồn tại.
 

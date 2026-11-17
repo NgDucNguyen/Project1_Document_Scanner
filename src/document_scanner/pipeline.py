@@ -43,7 +43,7 @@ def choose_ocr_model(language, tessdata_dir, choice, model_dir):
 
 
 def process_image(image_path, language, input_type="photo", psm=None, tessdata_dir=None, reference_path=None,
-                  content_method="tesseract"):
+                  scanner_method=None):
     # Mô hình tiếng Anh dùng PSM 11 nếu không yêu cầu cấu hình khác.
     if psm is None and language == "funsd_eng":
         psm = ENGLISH_PSM
@@ -74,13 +74,15 @@ def process_image(image_path, language, input_type="photo", psm=None, tessdata_d
 
     content_details = None
     detector_status = None
+    detector_method = None
     page_crop_check = None
     rejected_corners = None
     if input_type == "photo":
         # 2. Ưu tiên tìm đủ góc trang để nắn phối cảnh.
-        detection = detect_document(image)
+        detection = detect_document(image, method=scanner_method)
         status = detection["status"]
         detector_status = status
+        detector_method = detection.get("method")
         corners = detection["corners"]
         warnings = list(detection["warnings"])
         print("Trạng thái tìm khung:", status)
@@ -88,7 +90,7 @@ def process_image(image_path, language, input_type="photo", psm=None, tessdata_d
             print("Cảnh báo:", ", ".join(warnings))
         if corners is None:
             print("Không tìm được đủ góc trang; đang thử tìm vùng chữ...")
-            content = crop_content(image, language, tessdata_dir, method=content_method)
+            content = crop_content(image, language, tessdata_dir)
             if content is None:
                 raise ValueError(
                     "Không tìm được khung tài liệu hoặc đủ chữ để cắt vùng nội dung. "
@@ -106,7 +108,7 @@ def process_image(image_path, language, input_type="photo", psm=None, tessdata_d
             if suspect:
                 print("Khung trang có quá ít chữ so với ảnh gốc; đang thử vùng chữ...")
                 warnings.append("page_crop_text_mismatch")
-                content = crop_content(image, language, tessdata_dir, method=content_method)
+                content = crop_content(image, language, tessdata_dir)
                 if content is not None:
                     rejected_corners = corners.tolist()
                     corners = None
@@ -131,12 +133,6 @@ def process_image(image_path, language, input_type="photo", psm=None, tessdata_d
         warnings.append("content_frame_broad")
         print("Cảnh báo: vùng chữ chiếm gần toàn ảnh; có thể đã lấy cả nền hoặc bỏ sót chữ.")
         print("Hãy mở scan.png và đối chiếu với ảnh gốc.")
-    if content_details and content_details.get("ambiguous_groups", False):
-        warnings.append("content_groups_ambiguous")
-        print("Cảnh báo: có nhiều cụm chữ tách xa nhau; cần kiểm tra nội dung có bị bỏ sót không.")
-    if content_details and content_details.get("excluded_regions", 0) > 0:
-        warnings.append("content_regions_excluded")
-        print("Cảnh báo: có vùng chữ bị loại khỏi khung; hãy kiểm tra tiêu đề, chân trang và các cột chữ.")
 
     # 4. Mỗi lần chạy tạo một thư mục riêng.
     run_id = datetime.now().strftime(
@@ -182,7 +178,8 @@ def process_image(image_path, language, input_type="photo", psm=None, tessdata_d
         "scanner_status": status,
         "page_detector_status": detector_status,
         "content_detection": content_details,
-        "content_method_requested": content_method,
+        "scanner_method_requested": scanner_method or "configured_default",
+        "page_detector_method": detector_method,
         "page_crop_check": page_crop_check,
         "rejected_page_corners": rejected_corners,
         "warnings": warnings,
@@ -269,8 +266,8 @@ def main():
         "--reference",
         help="File TXT chứa văn bản chuẩn của ảnh, tùy chọn để tính CER/WER.",
     )
-    parser.add_argument("--content-method", choices=["tesseract", "dbnet"], default="tesseract",
-                        help="Bộ tìm vùng chữ dự phòng; mặc định giữ Tesseract, DBNet cần mô hình ONNX cục bộ.")
+    parser.add_argument("--scanner-method", choices=["docaligner", "classic"],
+                        help="Mặc định DocAligner theo cấu hình; classic dùng Canny/Otsu để đối chứng.")
 
     args = parser.parse_args()
 
@@ -291,7 +288,7 @@ def main():
         psm=args.psm,
         tessdata_dir=tessdata_dir,
         reference_path=Path(args.reference) if args.reference else None,
-        content_method=args.content_method,
+        scanner_method=args.scanner_method,
     )
 
     print()

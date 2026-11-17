@@ -1,5 +1,6 @@
 {
-  "version": "scanner_day3_v2",
+  "version": "scanner_v4_docaligner",
+  "default_method": "docaligner",
   "enhanced_proposals": true,
   "extra_canny_low": 5,
   "extra_canny_high": 20,

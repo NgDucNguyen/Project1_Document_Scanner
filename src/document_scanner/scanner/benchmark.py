@@ -13,7 +13,7 @@ import cv2
 import numpy as np
 import pandas as pd
 
-from detect import detect_document, polygon_iou
+from detect import CONFIG, detect_document, polygon_iou, detector_info
 from geometry import build_scan
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -172,10 +172,13 @@ def save_examples(report, samples, output, run_name):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--run-name", default="baseline", help="Tên mới cho mỗi phương án; không ghi đè kết quả cũ.")
+    parser.add_argument("--run-name", required=True, help="Tên mới cho mỗi phương án; không ghi đè kết quả cũ.")
+    parser.add_argument("--method", choices=["docaligner", "classic"], default=CONFIG["default_method"])
     parser.add_argument("--remaining-validation", action="store_true", help="Kiểm chứng trên validation ngoài tập phát triển cố định.")
     parser.add_argument("--workers", type=int, default=1)
     args = parser.parse_args()
+    CONFIG["default_method"] = args.method
+    model_info = detector_info()
     if args.workers < 1:
         parser.error("workers phải lớn hơn 0.")
     if not args.run_name or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-" for c in args.run_name):
@@ -199,6 +202,7 @@ def main():
     else:
         shutil.copy2(MANIFEST, output / "manifest.csv")
     info = {
+        **model_info,
         "complete": False, "created_at": datetime.now().astimezone().isoformat(),
         "scope": "page detector + perspective warp; excludes content fallback and OCR",
         "selection": "remaining validation excluding fixed development set" if args.remaining_validation

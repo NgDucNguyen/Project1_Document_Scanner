@@ -1,5 +1,7 @@
 # Hướng dẫn thử OCR tiếng Anh với một ảnh
 
+**Cập nhật 17/11/2026:** ảnh chụp mặc định được DocAligner tìm góc trước khi OCR; cần mô hình ONNX theo [README](../../README.md). Muốn đối chứng Canny/Otsu, thêm `--scanner-method classic`. OCR cuối vẫn là Tesseract/FUNSD. Với `--input-type scan`, chương trình bỏ qua tìm góc và không cần DocAligner.
+
 ## 1. Chuẩn bị ảnh và văn bản chuẩn
 
 Chọn một ảnh trang tài liệu tiếng Anh rõ chữ. Nếu là ảnh chụp, nên nhìn thấy cả bốn góc trang; hạn chế mờ, bóng và che khuất chữ. Chương trình đọc các định dạng ảnh thông dụng như JPG, JPEG và PNG.

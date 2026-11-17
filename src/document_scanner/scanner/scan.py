@@ -14,13 +14,13 @@ import cv2
 import numpy as np
 import pandas as pd
 
-from detect import CONFIG, CONFIG_PATH, detect_document
+from detect import CONFIG, CONFIG_PATH, detect_document, detector_info
 from geometry import build_scan
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 SMARTDOC_ROOT = PROJECT_ROOT / "data" / "raw" / "smartdoc"
 MANIFEST_PATH = PROJECT_ROOT / "data" / "interim" / "manifest_with_split.csv"
-OUTPUT_ROOT = PROJECT_ROOT / "artifacts" / "week2" / "batch"
+OUTPUT_ROOT = PROJECT_ROOT / "artifacts" / "scans"
 PROCESSED_ROOT = PROJECT_ROOT / "data" / "processed" / "scan"
 
 
@@ -102,7 +102,10 @@ def main():
     parser.add_argument("--split", choices=["train", "val", "test", "dev", "all"], default="dev")
     parser.add_argument("--limit", type=int, help="Chỉ dùng khi kiểm tra nhanh.")
     parser.add_argument("--workers", type=int, default=1, help="Số ảnh xử lý đồng thời.")
+    parser.add_argument("--method", choices=["docaligner", "classic"], default=CONFIG["default_method"])
     args = parser.parse_args()
+    CONFIG["default_method"] = args.method
+    model_info = detector_info()
     if args.workers < 1 or (args.limit is not None and args.limit < 1):
         parser.error("workers và limit phải lớn hơn 0.")
     manifest = pd.read_csv(MANIFEST_PATH)
@@ -130,6 +133,7 @@ def main():
     # OpenCV dùng 1 luồng/ảnh để không nhân quá nhiều luồng khi workers > 1.
     cv2.setNumThreads(1)
     run_info = {
+        **model_info,
         "run_id": run_name, "started_at": datetime.now().isoformat(),
         "selection": args.split, "images_requested": len(samples), "workers": args.workers,
         "python": platform.python_version(), "opencv": cv2.__version__,
