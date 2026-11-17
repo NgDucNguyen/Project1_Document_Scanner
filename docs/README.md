@@ -4,9 +4,10 @@
 
 Chỉ cần mở:
 
-1. [Báo cáo scanner hiện tại và kế hoạch](ke_hoach_7_ngay_cai_thien_scanner.md).
-2. [Bảng so sánh Canny/Otsu với DocAligner](results/scanner_comparison.csv).
-3. [README gốc: cài đặt, chạy và cấu trúc](../README.md).
+1. Báo cáo scanner hiện tại: [Word có ảnh minh họa](bao_cao_tien_do_scanner.docx) · [Markdown](bao_cao_tien_do_scanner.md).
+2. [Kế hoạch 7 ngày và trạng thái công việc](ke_hoach_7_ngay_cai_thien_scanner.md).
+3. [Bảng so sánh Canny/Otsu với DocAligner](results/scanner_comparison.csv).
+4. [README gốc: cài đặt, chạy và cấu trúc](../README.md) và [quy tắc dành cho AI](../AGENTS.md).
 
 ## Hướng dẫn khi cần
 

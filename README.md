@@ -6,7 +6,9 @@
 
 ## 1. Kết quả và báo cáo cần mở
 
-- [Báo cáo hiện tại, phương pháp và kế hoạch tiếp theo](docs/ke_hoach_7_ngay_cai_thien_scanner.md).
+- Báo cáo hiện tại: [bản Word có ảnh minh họa](docs/bao_cao_tien_do_scanner.docx) · [bản Markdown](docs/bao_cao_tien_do_scanner.md).
+- [Kế hoạch 7 ngày và việc cần làm tiếp](docs/ke_hoach_7_ngay_cai_thien_scanner.md).
+- [Quy tắc làm việc dành cho AI trong dự án](AGENTS.md).
 - [Bảng so sánh hai phương pháp trên toàn SmartDoc](docs/results/scanner_comparison.csv).
 - Ảnh so sánh 6 ca khó: `artifacts/scanner_dev/comparison/all_corners.jpg` và `all_scans.jpg`. Trái: Canny/Otsu cải tiến; phải: DocAligner. Xanh lá: nhãn; đỏ: dự đoán.
 - Ảnh scan minh họa: `data/processed/scan_examples/`; tra ảnh gốc trong `index.csv`.
