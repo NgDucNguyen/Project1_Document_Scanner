@@ -141,6 +141,8 @@ def process_image(image_path, language, input_type="photo", psm=None, tessdata_d
         "scanner_method_requested": scanner_method or "configured_default",
         "page_detector_method": detector_method,
         "page_crop_check": page_crop_check,
+        "quality": scan_info.get("quality"),
+        "enhancement": scan_info.get("enhancement"),
         "rejected_page_corners": rejected_corners,
         "warnings": warnings,
         "review_recommended": bool(warnings) or status == "uncertain",

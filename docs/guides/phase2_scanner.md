@@ -19,7 +19,13 @@ python -X utf8 src/document_scanner/scanner/scan_image.py --image "data/raw/thu_
 
 `scan_document()` trong `scan_image.py` là phần scan dùng chung với pipeline OCR: nếu đủ góc thì nắn; thiếu góc thì `crop_content()` tìm cụm nét chữ trên nền sáng, kiểm tra bằng hộp từ Tesseract và chọn một vùng lớn nhất. Không gom mọi hộp chữ vào một khung. Nếu không có vùng đủ bằng chứng thì dừng, không trả toàn ảnh làm kết quả scan giả.
 
-Ảnh cuối `scan.png` và ảnh đánh dấu `region.png` ở `data/processed/scan/single_<run_id>/`; metadata ở `artifacts/scans/single_<run_id>/`. Không xuất TXT, không chạy nhận dạng văn bản cuối. Khi có góc hợp lệ, scan riêng không gọi Tesseract. Khi thiếu góc, Tesseract vẫn cần để lấy hộp chữ cho bước dự phòng.
+Ảnh cuối `scan.png`, ảnh trước tăng cường `scan_color.png` và ảnh đánh dấu `region.png` ở `data/processed/scan/image_<tên>_<mã_đường_dẫn>/`; metadata ở thư mục cùng tên trong `artifacts/scans/`. Chạy lại cùng ảnh cập nhật đúng thư mục này; `--new-run` mới tạo lượt thời gian riêng. Các benchmark và batch không đổi cách lưu. Không xuất TXT hoặc chạy nhận dạng văn bản cuối. Tesseract vẫn cần nếu gọi nhánh tìm hộp chữ dự phòng.
+
+Sau cập nhật 18/11, `appearance.py` kiểm tra chất lượng vùng cắt trước khi làm sáng ảnh. Vùng nắn không đạt thì thử vùng chữ; kết quả cuối không đạt thì báo `rejected_quality` và không xuất ảnh scan thành công. `configs/scan.json` giữ ngưỡng và cấu hình tăng cường riêng, không thay cấu hình/thuật toán detector SmartDoc. Cơ chế này chỉ loại một số ca rõ ràng, chưa phải mô hình phân loại tài liệu.
+
+Nhánh vùng chữ thử thêm `refine_content_perspective()`: lấy contour/hull từ mặt nạ giấy, xấp xỉ tứ giác, kiểm tra giữ hộp chữ và nét ảnh rồi mới nắn. Nếu không đạt thì giữ xoay/cắt cũ. Không giả định mọi vùng chữ đều có đủ bằng chứng để nắn trang. Tọa độ tứ giác được đưa về ảnh gốc và ghi riêng trong `content_detection.perspective_refinement`, không thay nhãn góc DocAligner.
+
+Ảnh qua kiểm tra được bù nền trong Lab, tăng độ đậm mực và làm trắng nền bằng hỗ trợ nét cục bộ. Tô trắng có thể sai với giấy tối, hình vẽ hoặc nét rất nhạt; phải đối chiếu `scan_color.png`. `--no-enhance` tắt tăng cường. Chưa sửa trang cong hoặc tự nhận hướng đọc 90°/180° một cách tổng quát.
 
 `--detect-only` tắt dự phòng để đánh giá riêng detector; `--method both` so sánh hai nhánh độc lập. Xem [ghi chú detect](ghi_chu_detect.md) về cơ chế, giới hạn và mẫu ghi ca thử.
 

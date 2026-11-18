@@ -48,7 +48,15 @@ python -X utf8 src/document_scanner/scanner/scan_image.py --image "data/raw/thu_
 
 Lệnh tự nối DocAligner và cắt dự phòng. Phần dự phòng tìm các cụm nét chữ trên nền sáng, dùng hộp từ Tesseract làm bằng chứng rồi chọn **một vùng có diện tích lớn nhất**, không lấy hộp bao tất cả chữ trong ảnh. Không có vùng đủ bằng chứng thì báo thất bại. Đây là quy tắc chọn vùng, chưa bảo đảm hiểu đúng trang chính trong mọi ảnh nhiều giấy.
 
-Mở `data/processed/scan/single_<run_id>/scan.png` và `region.png` để xem ảnh cuối và vùng cắt trên ảnh gốc. Metadata ở `artifacts/scans/single_<run_id>/metadata.json`. Không tạo `text.txt`; Tesseract chỉ lấy hộp chữ khi cần cắt dự phòng. Nếu có đủ góc, lệnh scan riêng không gọi bước tìm chữ.
+Mỗi ảnh có một thư mục cố định `data/processed/scan/image_<tên>_<mã_đường_dẫn>/`: `scan.png` (đã tăng cường), `scan_color.png` (ảnh màu trước tăng cường) và `region.png` (vùng cắt trên ảnh gốc). Metadata ở thư mục cùng tên trong `artifacts/scans/`. Với `anh_2.jpg`, mở `data/processed/scan/image_anh_2_b016f626/scan.png`. Không tạo `text.txt`; Tesseract chỉ lấy hộp chữ khi cần cắt dự phòng.
+
+**Chạy lại cùng ảnh sẽ cập nhật kết quả tại chỗ, không sinh thư mục thời gian mới.** Nếu lần chạy mới thất bại, ảnh thành công cũ được bỏ để tránh xem nhầm. Các file ghi chú riêng không bị xóa. Ảnh khác cùng tên được phân biệt bằng mã đường dẫn. Chỉ thêm `--new-run` khi chủ động muốn lưu một lượt lịch sử riêng; benchmark theo lô vẫn giữ cách lưu riêng từng lượt.
+
+Scanner kiểm tra vùng cắt **trước tăng cường**: kích thước, vùng giấy sáng, nét giống chữ và độ sắc nét. Nếu khung trang không đạt, thử vùng chữ dự phòng; đầu ra vẫn không đạt thì từ chối, không lưu ảnh scan thành công. Các ngưỡng trong `configs/scan.json` mới là heuristic cho giấy sáng có chữ, chưa phải bộ phân loại ảnh không có tài liệu đáng tin cậy.
+
+Nhánh dự phòng hiện thử tìm tứ giác từ mặt nạ giấy trong vùng nội dung chính và nắn phối cảnh nếu qua kiểm tra giữ hộp chữ/nét ảnh. Kết quả vẫn ghi là `content_fallback`, kèm `content_detection.perspective_refinement`; đây là khung ước lượng theo nội dung, không phải DocAligner đã tìm góc thành công. Nếu không đủ bằng chứng thì giữ cách xoay/cắt cũ.
+
+Ảnh được bù độ sáng trong Lab, tăng độ đậm và dùng mặt nạ nét cục bộ để làm trắng nền; ảnh chữ đầu ra vẫn giữ các mức màu. Thêm `--no-enhance` để giữ ảnh màu trước tăng cường. Lọc nền có thể làm mất chi tiết rất nhạt hoặc hình vẽ; phải đối chiếu `scan_color.png`. Giấy phụ chạm trang chính vẫn có thể còn, không coi tô trắng nền là đã tách đúng trang. `--detect-only` giữ phép thử detector thuần, không chạy bước chất lượng/tăng cường mới.
 
 Thêm `--detect-only` để chỉ kiểm tra detector, tắt cắt dự phòng; `--method both` so sánh hai phương pháp riêng. File thử cũ `detect_image.py` đã được thay bằng `scan_image.py`; các kết quả cũ ở `data/processed/detect/` được giữ để đối chiếu. Xem [sổ ghi chú detect](docs/guides/ghi_chu_detect.md) để ghi các ca thử.
 

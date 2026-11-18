@@ -1,6 +1,6 @@
 # Mục lục tài liệu
 
-**Cập nhật 17/11/2026:** DocAligner đã là scanner mặc định; Canny/Otsu giữ để đối chứng. Đã chạy detect toàn bộ SmartDoc, giữ Tesseract/FUNSD cho OCR và hoàn tất dọn các lượt thử cũ sau xác nhận của người dùng. Kiểm thử ảnh mới/tiếng Việt/ảnh không có giấy là việc tiếp theo.
+**Cập nhật 19/11/2026:** báo cáo MD/Word đã bổ sung scan riêng, chọn vùng chữ chính khi thiếu góc, nắn phối cảnh dự phòng, kiểm tra chất lượng và làm rõ ảnh. Pipeline OCR đã gọi chung scanner. Số liệu SmartDoc giữ nguyên; hai ảnh mới chỉ là thử chức năng, chưa hoàn tất đánh giá độc lập hoặc đo lại OCR.
 
 Chỉ cần mở:
 

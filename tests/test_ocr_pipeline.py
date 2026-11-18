@@ -24,6 +24,12 @@ class OcrPipelineTests(unittest.TestCase):
         self.image_path = self.root / "input.png"
         self.image = np.full((40, 60, 3), 255, np.uint8)
         self.assertTrue(cv2.imwrite(str(self.image_path), self.image))
+        # Các test nối luồng dùng ảnh trắng nhỏ; kiểm tra chất lượng thật ở test_scan_appearance.
+        quality = patch.object(scan_image, "assess_document", return_value={
+            "accepted": True, "reasons": [], "warnings": [], "metrics": {},
+        })
+        quality.start()
+        self.addCleanup(quality.stop)
 
     def test_scanned_input_skips_detector_and_records_configuration(self):
         with patch.object(pipeline, "OUTPUT_ROOT", self.root / "output"), \

@@ -28,6 +28,7 @@
 | `scanner/geometry.py` | Kiểm tra góc, nắn phối cảnh, ma trận H/T |
 | `scanner/content_scan.py` | Tìm/cắt vùng chữ dự phòng bằng Tesseract |
 | `scanner/scan_image.py` | Scan một ảnh: detect → nắn hoặc chọn vùng chữ chính; dùng chung với pipeline OCR |
+| `scanner/appearance.py`, `configs/scan.json` | Kiểm tra chất lượng ảnh trước tăng cường; bù nền và giữ màu mực, lưu ảnh màu để đối chiếu |
 | `scanner/benchmark_detection.py` | Detect toàn SmartDoc, không tạo ảnh hoặc OCR |
 | `scanner/benchmark.py` | Kiểm chứng tập phát triển cố định hoặc validation còn lại |
 | `scanner/scan.py`, `evaluate.py` | Tạo ảnh scan theo lô và chấm train/validation |
@@ -60,6 +61,7 @@ python -X utf8 -m unittest discover -s tests
 - Sau thay đổi detector/pipeline, chạy kiểm thử liên quan và một số ca khó phù hợp với thay đổi. Không thêm kiểm thử chỉ lặp lại cách triển khai.
 - Chỉ chạy toàn bộ 24.889 ảnh khi được yêu cầu hoặc cần thiết cho một phép kiểm chứng đã thống nhất. Người dùng ưu tiên nhận lệnh để tự chạy các lượt dài.
 - Mỗi lượt benchmark dùng `--run-name` mới; không ghi đè mốc cũ. Chỉ kết luận từ lượt có `complete: true`.
+- Riêng CLI `scanner/scan_image.py` mặc định cập nhật một thư mục kết quả cho mỗi đường dẫn ảnh theo yêu cầu người dùng, tránh bản lặp. Chỉ dùng `--new-run` khi cần lưu mốc riêng. Không áp dụng ghi đè này cho benchmark; không xóa file ghi chú riêng trong thư mục kết quả.
 - Không cần chạy lại toàn bộ dữ liệu khi chỉ sửa tài liệu hoặc sắp xếp file.
 
 ## Giữ cấu trúc và dọn file

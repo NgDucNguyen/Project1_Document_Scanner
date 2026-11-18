@@ -49,11 +49,11 @@ Khi chạy DocAligner mặc định, chương trình **không tự chạy tiếp
 
 | Công cụ                  | Thực hiện                                                                                                                     | Đầu ra                                                                                |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `scanner/scan_image.py`  | Detect → nắn nếu có đủ góc; nếu thiếu thì tự cắt vùng chữ chính. Không xuất văn bản OCR. Thêm `--detect-only` để tắt dự phòng | `data/processed/scan/single_<run_id>/`; metadata ở `artifacts/scans/single_<run_id>/` |
+| `scanner/scan_image.py`  | Detect → nắn nếu có đủ góc; nếu thiếu thì tự cắt vùng chữ chính. Không xuất văn bản OCR. Thêm `--detect-only` để tắt dự phòng | `data/processed/scan/image_<tên>_<mã>/`; metadata ở thư mục cùng tên trong `artifacts/scans/`; chạy lại sẽ cập nhật |
 | `pipeline.py`            | Detect, nắn, kiểm tra lượng chữ; thử cắt nội dung nếu thiếu khung hoặc nghi mất chữ; sau đó OCR                               | `data/processed/pipeline/<run_id>/`                                                   |
 | `scanner/manual_scan.py` | Cho sửa bốn góc bằng tay và xem trước                                                                                         | `data/processed/manual/`; metadata ở `artifacts/manual/`                              |
 
-Phần scan chung nằm ở `scan_image.py::scan_document()`, được `pipeline.py` gọi lại. Lệnh scan riêng chỉ yêu cầu dự phòng khi thiếu góc; pipeline OCR còn bật kiểm tra mất chữ sau nắn.
+Phần scan chung nằm ở `scan_image.py::scan_document()`, được `pipeline.py` gọi lại. Sau cập nhật chất lượng, cả hai thử dự phòng khi thiếu góc hoặc vùng nắn không đạt kiểm tra ảnh; pipeline OCR còn bật kiểm tra mất chữ bằng hộp từ sau nắn.
 
 ### Cách chọn vùng chữ chính sau cập nhật
 
@@ -177,7 +177,75 @@ Sao chép khối dưới đây ngay trong file này khi cần thêm một ca.
 
 Chưa cần chạy lại 24.889 ảnh chỉ để rà checklist. Ưu tiên tập ảnh mới và ca lỗi trước; chỉ chạy lại toàn bộ khi đã chốt một cải tiến cần so sánh.
 
-6. List các công việc cần hoàn thiện ở phần scan
+## 10. List các công việc cần hoàn thiện ở phần scan
 
 - Loại sạch giấy phụ và nền
+  - **Đang làm:** có vùng nội dung chính và tô trắng vùng ngoài giấy ước lượng. Chưa đánh dấu hoàn tất vì giấy phụ tiếp giáp vẫn còn và nhánh dự phòng chưa sửa hết phối cảnh.
 - Từ chối những ảnh không tài liệu hoặc tài liệu quá kém chất lượng
+  - **Đang làm:** đã nối kiểm tra kích thước, tỷ lệ giấy sáng, nét giống chữ và độ sắc nét trước tăng cường. Đã thử từ chối ảnh trắng, vùng lớp học không có giấy cắt từ ảnh gốc và ảnh làm mờ mạnh. Đây là khảo sát ít mẫu, chưa có tỷ lệ nhận nhầm trên bộ ảnh âm tính độc lập.
+
+### Kết quả nối tăng cường và so sánh ảnh CamScanner
+
+Luồng hiện tại: ảnh → DocAligner → kiểm tra vùng nắn → vùng chữ dự phòng nếu cần → kiểm tra chất lượng đầu ra → bù nền/tăng tương phản → lưu ảnh. Detector và ngưỡng heatmap cũ được giữ nguyên.
+
+- `appearance.py::assess_document()` kiểm tra trên ảnh màu **trước tăng cường**. `rejected_quality` nghĩa không xuất ảnh scan thành công; không dùng độ sắc nét sau sharpen để làm đẹp điểm chấp nhận.
+- `appearance.py::enhance_document()` bù độ sáng trong Lab và giảm ám màu trên nền gần trắng, giữ chroma tại nét tối; không nhị phân hóa chữ và không sinh lại nét bị mất.
+- Cấu hình: `configs/scan.json`. Kết quả lưu cả `quality`, `enhancement` và cấu hình/hash nguồn trong metadata. Lệnh một ảnh ghi thêm phiên bản OpenCV; chưa ghi đầy đủ phiên bản Tesseract.
+- `scan.png` là ảnh đã tăng cường; `scan_color.png` giữ ảnh màu trước tăng cường; `region.png` đánh dấu vùng đã cắt. `--no-enhance` tắt bước làm sáng, `--detect-only` chỉ thử detector như trước.
+- Pipeline OCR cũng gọi chung bước mới và ghi thông tin chất lượng/tăng cường; không đổi mô hình đọc chữ. Chưa đo CER/WER sau thay đổi này nên chưa kết luận OCR tốt hơn.
+
+Hai kết quả cuối của lần nối thử:
+
+| Ảnh | Lượt chạy | Kết quả |
+| --- | --- | --- |
+| `anh_2.jpg` | `single_20261118_231026_318983` | `content_fallback`: nền sáng hơn và phần lớn nền ngoài giấy được tô trắng; còn giấy phụ, ít nền và trang vẫn xiên |
+| `anh_viet.jpg` | `single_20261118_231029_591128` | Dùng bốn góc DocAligner, tăng cường sau nắn; vẫn thấy nhiễu/nét mờ từ ảnh gốc |
+
+Xem các ảnh tại `data/processed/scan/<lượt_chạy>/`. Đã mở và kiểm tra hai ảnh cuối; 45 kiểm thử đạt, gồm ca trắng, mờ mạnh, nền tối, giữ hướng màu mực và từ chối trước tăng cường.
+
+**So với ảnh mẫu CamScanner:** đã cải thiện nền sáng và tương phản; chưa đạt cùng mức về độ thẳng trang, độ sạch mép và độ rõ chữ. Ảnh mẫu là ảnh chụp màn hình ứng dụng nên chỉ dùng tham khảo trực quan, không dùng để tính điểm chất lượng hoặc suy ra thuật toán của ứng dụng. Tô trắng nền không đồng nghĩa đã tìm đúng mép trang. Ưu tiên tiếp theo vẫn là tách đúng trang chính, kiểm chứng giữ đủ chữ và mở rộng ảnh âm tính.
+
+## 11. Sửa theo ba yêu cầu từ ảnh mẫu
+
+Yêu cầu là cắt phần ngoài khung, nắn phối cảnh để trang/dòng chữ thẳng hơn và làm mực đậm dễ nhìn; làm sáng nền đơn thuần chưa đủ.
+
+### Nắn thêm ở nhánh dự phòng
+
+- Sau khi chọn vùng chữ chính, `content_scan.py::refine_content_perspective()` tìm contour giấy sáng, lấy convex hull và thử xấp xỉ tứ giác. Không dùng tọa độ viết tay riêng cho hai ảnh thử.
+- Chỉ xét khung có diện tích phù hợp và dấu hiệu phối cảnh. Nới khung nhỏ để giữ ít nhất 98% diện tích từng hộp từ có bằng chứng nằm trên giấy và ít nhất 97% mặt nạ nét đủ điều kiện. Đây là kiểm tra tín hiệu ảnh, không phải chứng minh giữ đủ 97%/98% văn bản thật.
+- Từ chối nắn thêm nếu không qua các kiểm tra; giữ xoay/cắt cũ. Nếu qua, ghép ma trận và nắn trực tiếp từ ảnh gốc một lần để giảm mờ do nhiều lần nội suy.
+- `scanner_status` vẫn là `content_fallback`. Chi tiết tứ giác và ma trận nằm trong `content_detection.perspective_refinement`; `corners_original` của detector vẫn null. `T_source_to_output` có thể là phép phối cảnh dù `H_source_to_warp` của nhánh detector null.
+- Nếu khung ước lượng đi ra ngoài ảnh gốc do trang bị cắt sát mép, lưu `outside_source` và cảnh báo đệm trắng. Không tạo lại nội dung nằm ngoài ảnh. Các tọa độ này là ước lượng ở nhánh dự phòng, không được đưa vào điểm detector SmartDoc.
+
+### Làm chữ đậm và giảm nền loang
+
+`appearance.py` tăng tín hiệu mực trước đường cong độ sáng. Mặt nạ adaptive threshold chỉ chọn vùng hỗ trợ nét để làm trắng nền, không biến toàn bộ đầu ra thành ảnh nhị phân. Ảnh trước tăng cường vẫn giữ ở `scan_color.png`. Nét rất nhạt và hình vẽ có thể bị ảnh hưởng; ngưỡng nằm trong `configs/scan.json`, tắt tăng cường bằng `--no-enhance` khi cần.
+
+### Đối chiếu thực tế
+
+- Ảnh `anh_2.jpg`, lượt `single_20261118_233035_505030`: nắn tứ giác dự phòng đã áp dụng; mép trên khung ước lượng trước nắn nghiêng khoảng 10,65°. Khung chữ nhật đầu ra thẳng hơn, các mảng bàn lớn đã bị cắt, chữ đậm và nền trắng hơn.
+- Xem [mốc so sánh đã lưu riêng](../../artifacts/history/scan_report_20261118/comparison.jpg): bên trái là bản cũ, bên phải là bản nắn/tăng cường mới. Không dùng ảnh màn hình CamScanner để tính điểm so sánh số.
+- `anh_viet.jpg`, lượt `single_20261118_233038_157463`: vẫn dùng khung DocAligner, áp dụng tăng cường mới sau nắn.
+- 48 kiểm thử đạt ở lần kiểm tra này, gồm trường hợp nắn giảm độ dốc dòng trên ảnh phối cảnh tổng hợp, bỏ qua trang đã gần chữ nhật, và giữ nét mảnh/dấu chấm thử nghiệm. Chưa có nhãn kiểm tra mất chữ trên hai ảnh chụp.
+- Còn dải giấy phụ bên trái, ít viền tối, nét chữ chưa sắc như ảnh mẫu và phần chữ bị cắt ngoài ảnh gốc không phục hồi được. Chưa có cơ chế tổng quát tự xoay trang ngược 180° theo nghĩa đọc. Hai mục người dùng thêm ở mục 10 vẫn chưa đánh dấu hoàn tất.
+
+## 12. Dọn kết quả lặp và cách chạy hiện tại
+
+Nguyên nhân lặp là CLI cũ luôn tạo `single_<thời_gian>` cho mỗi lần chạy. Theo yêu cầu người dùng, CLI một ảnh đã đổi sang cập nhật một thư mục cố định theo đường dẫn ảnh.
+
+```powershell
+python -X utf8 src/document_scanner/scanner/scan_image.py --image "data/raw/thu_detect/anh_2.jpg"
+```
+
+- Ảnh hiện tại: `data/processed/scan/image_anh_2_b016f626/scan.png`.
+- Ảnh trước tăng cường: cùng thư mục, `scan_color.png`; vùng cắt: `region.png`.
+- Metadata: `artifacts/scans/image_anh_2_b016f626/metadata.json`.
+- `anh_viet.jpg` dùng thư mục `image_anh_viet_22947531`.
+- Chạy lại không tạo bản lặp. Khi đổi chế độ hoặc lần mới bị từ chối, các ảnh đầu ra cũ do CLI quản lý được bỏ để tránh hiểu nhầm là kết quả mới. File ghi chú riêng vẫn được giữ.
+- Muốn giữ một lượt riêng có chủ đích, thêm `--new-run`. Quy tắc này chỉ dành cho scan một ảnh, không ghi đè các benchmark theo lô.
+
+Đã dọn 39 thư mục cũ chứa 74 file sinh ra từ hai ảnh trên, khoảng 47,57 MiB; không xóa ảnh gốc, mô hình, hai benchmark SmartDoc hay kết quả batch mốc. Các mã `single_...` ở các mục trước là nhật ký lịch sử, thư mục ảnh trung gian tương ứng đã được dọn. Mốc trước/sau, ảnh so sánh và metadata gốc được giữ trong `artifacts/history/scan_report_20261118/`.
+
+51 kiểm thử đạt. Đã chạy cùng ảnh thật hai lần liên tiếp và xác nhận chỉ một thư mục; kiểm thử còn kiểm tra không xóa ghi chú riêng, không nhầm hai ảnh trùng tên ở hai đường dẫn, và không để ảnh thành công cũ xuất hiện sau lần chạy thất bại.
+
+**Chỉnh nhẹ độ rõ chữ:** tăng `sharpen_amount` từ 0,20 lên 0,45, dùng `sharpen_sigma = 0,7` trong `configs/scan.json` để làm rõ mép nét bằng bán kính nhỏ. Đã xem vùng chữ phóng to trước/sau và chạy lại hai ảnh vào thư mục hiện tại, không tạo lượt lặp. 11 kiểm thử liên quan chất lượng, tăng cường và lưu đầu ra đạt; không coi sharpen là phục hồi chi tiết đã mất của ảnh gốc.

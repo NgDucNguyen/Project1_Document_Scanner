@@ -1,0 +1,26 @@
+{
+  "version": "scan_v3_content_perspective",
+  "quality": {
+    "analysis_size": 1000,
+    "min_output_side": 96,
+    "min_paper_fraction": 0.50,
+    "min_text_components": 6,
+    "min_ink_fraction": 0.0008,
+    "max_ink_fraction": 0.28,
+    "min_focus": 4.0,
+    "review_focus": 20.0
+  },
+  "appearance": {
+    "analysis_size": 1200,
+    "background_kernel": 31,
+    "background_sigma": 12,
+    "ink_gamma": 2.0,
+    "ink_gain": 1.8,
+    "clean_paper_background": true,
+    "text_window": 35,
+    "text_offset": 5,
+    "sharpen_amount": 0.45,
+    "sharpen_sigma": 0.7,
+    "whiten_outside_paper": true
+  }
+}
