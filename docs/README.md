@@ -11,6 +11,7 @@ Chỉ cần mở:
 
 ## Hướng dẫn khi cần
 
+- [Ghi chú thử detect, DocAligner và vị trí dùng Canny/Otsu](guides/ghi_chu_detect.md): có mẫu để tự ghi các ca thử.
 - [Scanner: phương pháp và trạng thái](guides/phase2_scanner.md).
 - [Thử OCR trên một ảnh](guides/thu_ocr_mot_anh.md).
 - [Chuẩn bị dữ liệu](guides/phase1_data.md).

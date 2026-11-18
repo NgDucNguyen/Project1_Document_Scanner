@@ -3,6 +3,8 @@
 **Sinh viên:** Nguyễn Đức Nguyên — **MSSV:** 202416305  
 **Đơn vị:** Đại học Bách khoa Hà Nội — **Cập nhật:** 17/11/2026
 
+**Ghi chú triển khai 18/11/2026:** đã nối scanner một ảnh thành luồng tự động DocAligner → nắn nếu đủ góc → chọn vùng chữ chính nếu thiếu góc. Lệnh mới và kết quả hai ảnh chụp nằm trong [sổ ghi chú detect](guides/ghi_chu_detect.md). Đây là cập nhật thử nghiệm sau báo cáo Word ngày 17/11; các số liệu SmartDoc bên dưới giữ nguyên, chưa chạy lại toàn bộ và chưa đo IoU cho hai ảnh mới.
+
 ## Kết quả chính và phạm vi đánh giá
 
 Em đã xây dựng và cải thiện scanner dựa trên Canny/Otsu, phân tích các trường hợp thất bại, sau đó tích hợp mô hình DocAligner FastViT-T8 đã huấn luyện sẵn để dự đoán bốn góc tài liệu. DocAligner hiện là phương pháp chính; scanner truyền thống được giữ để đối chứng. OCR tiếng Anh tiếp tục dùng Tesseract/FUNSD.

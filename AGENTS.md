@@ -27,6 +27,7 @@
 | `scanner/classic.py` | Canny/Otsu, nhánh cạnh xám/Lab, ứng viên và chấm điểm |
 | `scanner/geometry.py` | Kiểm tra góc, nắn phối cảnh, ma trận H/T |
 | `scanner/content_scan.py` | Tìm/cắt vùng chữ dự phòng bằng Tesseract |
+| `scanner/scan_image.py` | Scan một ảnh: detect → nắn hoặc chọn vùng chữ chính; dùng chung với pipeline OCR |
 | `scanner/benchmark_detection.py` | Detect toàn SmartDoc, không tạo ảnh hoặc OCR |
 | `scanner/benchmark.py` | Kiểm chứng tập phát triển cố định hoặc validation còn lại |
 | `scanner/scan.py`, `evaluate.py` | Tạo ảnh scan theo lô và chấm train/validation |
@@ -51,6 +52,7 @@ Dùng `python`, không dùng `python3`. Chạy từ gốc dự án với venv đ
 
 ```powershell
 python -X utf8 src/document_scanner/pipeline.py --image "data/raw/thu_ocr/anh.jpg"
+python -X utf8 src/document_scanner/scanner/scan_image.py --image "data/raw/thu_detect/anh_2.jpg"
 python -X utf8 src/document_scanner/pipeline.py --image "data/raw/thu_ocr/anh.jpg" --scanner-method classic
 python -X utf8 -m unittest discover -s tests
 ```

@@ -7,9 +7,7 @@ import cv2
 import numpy as np
 
 # Các hàm scanner và OCR đã làm trước đó.
-from scanner.detect import detect_document
-from scanner.geometry import build_scan
-from scanner.content_scan import crop_content, page_crop_seems_wrong
+from scanner.scan_image import scan_document
 from ocr.metrics import edit_distance, normalize_text
 from ocr.recognize import recognize_image
 
@@ -72,67 +70,29 @@ def process_image(image_path, language, input_type="photo", psm=None, tessdata_d
 
     print("Đã đọc ảnh:", image_path)
 
-    content_details = None
-    detector_status = None
-    detector_method = None
-    page_crop_check = None
-    rejected_corners = None
     if input_type == "photo":
-        # 2. Ưu tiên tìm đủ góc trang để nắn phối cảnh.
-        detection = detect_document(image, method=scanner_method)
-        status = detection["status"]
-        detector_status = status
-        detector_method = detection.get("method")
-        corners = detection["corners"]
-        warnings = list(detection["warnings"])
-        print("Trạng thái tìm khung:", status)
-        if warnings:
-            print("Cảnh báo:", ", ".join(warnings))
-        if corners is None:
-            print("Không tìm được đủ góc trang; đang thử tìm vùng chữ...")
-            content = crop_content(image, language, tessdata_dir)
-            if content is None:
-                raise ValueError(
-                    "Không tìm được khung tài liệu hoặc đủ chữ để cắt vùng nội dung. "
-                    "Hãy kiểm tra lại ảnh hoặc sửa góc bằng tay."
-                )
-            scanned, matrix_t, content_details = content
-            matrix_h = None
-            status = "content_fallback"
-            warnings.append("content_bounds_not_page")
-            print("Đã cắt theo vùng chữ, góc xoay:", content_details["rotation_degrees"], "độ.")
-            print("Lưu ý: đây không phải mép trang; hãy kiểm tra scan.png để tránh mất chữ.")
-        else:
-            scanned, matrix_h, matrix_t = build_scan(image, corners)
-            suspect, page_crop_check = page_crop_seems_wrong(image, scanned, language, tessdata_dir)
-            if suspect:
-                print("Khung trang có quá ít chữ so với ảnh gốc; đang thử vùng chữ...")
-                warnings.append("page_crop_text_mismatch")
-                content = crop_content(image, language, tessdata_dir)
-                if content is not None:
-                    rejected_corners = corners.tolist()
-                    corners = None
-                    scanned, matrix_t, content_details = content
-                    matrix_h = None
-                    status = "content_fallback"
-                    warnings.append("content_bounds_not_page")
-                    print("Đã chuyển sang cắt vùng chữ. Hãy kiểm tra scan.png.")
-                else:
-                    status = "uncertain"
-                    print("Không tạo được vùng chữ thay thế; cần kiểm tra ảnh scan.")
+        # Dùng chung scanner với lệnh scan riêng, tránh lặp hai cách cắt.
+        scanned, scan_info = scan_document(
+            image, scanner_method, language, tessdata_dir, check_content=True,
+        )
+        print("Trạng thái scan:", scan_info["scanner_status"])
     elif input_type == "scan":
-        # FUNSD và ảnh đã nắn có thể đưa trực tiếp vào OCR.
         scanned = image
-        status = "already_scanned"
-        corners = matrix_h = matrix_t = None
-        warnings = []
+        scan_info = {"scanner_status": "already_scanned", "warnings": []}
     else:
         raise ValueError("input_type phải là photo hoặc scan.")
-
-    if content_details and content_details.get("content_box_area_ratio", 0) >= 0.8:
-        warnings.append("content_frame_broad")
-        print("Cảnh báo: vùng chữ chiếm gần toàn ảnh; có thể đã lấy cả nền hoặc bỏ sót chữ.")
-        print("Hãy mở scan.png và đối chiếu với ảnh gốc.")
+    status = scan_info["scanner_status"]
+    warnings = scan_info["warnings"]
+    content_details = scan_info.get("content_detection")
+    detector_status = scan_info.get("page_detector_status")
+    detector_method = scan_info.get("page_detector_method")
+    page_crop_check = scan_info.get("page_crop_check")
+    rejected_corners = scan_info.get("rejected_page_corners")
+    corners = scan_info.get("corners_original")
+    matrix_h = scan_info.get("H_source_to_warp")
+    matrix_t = scan_info.get("T_source_to_output")
+    if warnings:
+        print("Cảnh báo:", ", ".join(warnings))
 
     # 4. Mỗi lần chạy tạo một thư mục riêng.
     run_id = datetime.now().strftime(
@@ -184,9 +144,9 @@ def process_image(image_path, language, input_type="photo", psm=None, tessdata_d
         "rejected_page_corners": rejected_corners,
         "warnings": warnings,
         "review_recommended": bool(warnings) or status == "uncertain",
-        "corners_original": None if corners is None else corners.tolist(),
-        "H_source_to_warp": None if matrix_h is None else matrix_h.tolist(),
-        "T_source_to_output": None if matrix_t is None else matrix_t.tolist(),
+        "corners_original": corners,
+        "H_source_to_warp": matrix_h,
+        "T_source_to_output": matrix_t,
     }
     (output_folder / "metadata.json").write_text(
         json.dumps(metadata, ensure_ascii=False, indent=2),

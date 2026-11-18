@@ -2,7 +2,7 @@
 
 **Nguyễn Đức Nguyên · MSSV 202416305 · Đại học Bách khoa Hà Nội**
 
-Ảnh chụp → tìm bốn góc → nắn phối cảnh → OCR tiếng Anh bằng Tesseract/FUNSD. **DocAligner là scanner mặc định. Canny/Otsu được giữ nguyên để chạy đối chứng.** Khi không có khung hợp lệ hoặc khung có dấu hiệu mất chữ, pipeline thử cắt vùng chữ bằng Tesseract.
+Ảnh chụp → DocAligner → nắn bốn góc nếu có; nếu thiếu góc thì chọn vùng chữ chính để cắt dự phòng. Có thể chạy scanner riêng hoặc nối tiếp OCR tiếng Anh bằng Tesseract/FUNSD. **Canny/Otsu được giữ để đối chứng.** Pipeline có OCR còn kiểm tra dấu hiệu mất chữ sau nắn.
 
 ## 1. Kết quả và báo cáo cần mở
 
@@ -39,6 +39,18 @@ Nếu đã có venv thì chỉ cần kích hoạt. Có thể thay `python` bằn
 Ảnh dữ liệu và trọng số mô hình chỉ giữ cục bộ, không có trong GitHub. Thiếu DocAligner thì tải mô hình hoặc chọn `classic`; chương trình không âm thầm thay phương pháp.
 
 ## 3. Chạy một ảnh
+
+**Scan tự động một ảnh, không xuất văn bản OCR:**
+
+```powershell
+python -X utf8 src/document_scanner/scanner/scan_image.py --image "data/raw/thu_detect/anh_2.jpg"
+```
+
+Lệnh tự nối DocAligner và cắt dự phòng. Phần dự phòng tìm các cụm nét chữ trên nền sáng, dùng hộp từ Tesseract làm bằng chứng rồi chọn **một vùng có diện tích lớn nhất**, không lấy hộp bao tất cả chữ trong ảnh. Không có vùng đủ bằng chứng thì báo thất bại. Đây là quy tắc chọn vùng, chưa bảo đảm hiểu đúng trang chính trong mọi ảnh nhiều giấy.
+
+Mở `data/processed/scan/single_<run_id>/scan.png` và `region.png` để xem ảnh cuối và vùng cắt trên ảnh gốc. Metadata ở `artifacts/scans/single_<run_id>/metadata.json`. Không tạo `text.txt`; Tesseract chỉ lấy hộp chữ khi cần cắt dự phòng. Nếu có đủ góc, lệnh scan riêng không gọi bước tìm chữ.
+
+Thêm `--detect-only` để chỉ kiểm tra detector, tắt cắt dự phòng; `--method both` so sánh hai phương pháp riêng. File thử cũ `detect_image.py` đã được thay bằng `scan_image.py`; các kết quả cũ ở `data/processed/detect/` được giữ để đối chiếu. Xem [sổ ghi chú detect](docs/guides/ghi_chu_detect.md) để ghi các ca thử.
 
 Mặc định dùng DocAligner rồi OCR tiếng Anh:
 
@@ -90,6 +102,7 @@ src/document_scanner/
     docaligner.py            # Mô hình bốn góc mặc định
     classic.py               # Canny/Otsu và các cải tiến truyền thống
     geometry.py              # Kiểm tra góc và nắn phối cảnh
+    scan_image.py            # Scanner một ảnh dùng chung, CLI scan không xuất OCR
     content_scan.py          # Cắt vùng chữ dự phòng bằng Tesseract
     scan.py                  # Tạo ảnh scan theo lô
     manual_scan.py           # Công cụ sửa góc bằng tay khi cần

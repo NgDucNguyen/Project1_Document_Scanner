@@ -11,6 +11,18 @@
 
 Hai cách đều trả tọa độ trên ảnh gốc cho `geometry.py` nắn phối cảnh. Không dùng nhãn thật để tìm hoặc chọn khung. Nhãn chỉ dùng để chấm điểm ngoại tuyến.
 
+## Chạy scanner một ảnh không xuất văn bản
+
+```powershell
+python -X utf8 src/document_scanner/scanner/scan_image.py --image "data/raw/thu_detect/anh_2.jpg"
+```
+
+`scan_document()` trong `scan_image.py` là phần scan dùng chung với pipeline OCR: nếu đủ góc thì nắn; thiếu góc thì `crop_content()` tìm cụm nét chữ trên nền sáng, kiểm tra bằng hộp từ Tesseract và chọn một vùng lớn nhất. Không gom mọi hộp chữ vào một khung. Nếu không có vùng đủ bằng chứng thì dừng, không trả toàn ảnh làm kết quả scan giả.
+
+Ảnh cuối `scan.png` và ảnh đánh dấu `region.png` ở `data/processed/scan/single_<run_id>/`; metadata ở `artifacts/scans/single_<run_id>/`. Không xuất TXT, không chạy nhận dạng văn bản cuối. Khi có góc hợp lệ, scan riêng không gọi Tesseract. Khi thiếu góc, Tesseract vẫn cần để lấy hộp chữ cho bước dự phòng.
+
+`--detect-only` tắt dự phòng để đánh giá riêng detector; `--method both` so sánh hai nhánh độc lập. Xem [ghi chú detect](ghi_chu_detect.md) về cơ chế, giới hạn và mẫu ghi ca thử.
+
 ## Chạy một ảnh qua scanner và OCR
 
 ```powershell
@@ -18,7 +30,7 @@ python -X utf8 src/document_scanner/pipeline.py --image "data/raw/thu_ocr/anh.jp
 python -X utf8 src/document_scanner/pipeline.py --image "data/raw/thu_ocr/anh.jpg" --scanner-method classic
 ```
 
-Mỗi lệnh tạo một thư mục `data/processed/pipeline/<run_id>/` với ảnh, TXT và metadata. Khi thiếu góc hoặc khung có dấu hiệu mất chữ, pipeline dùng Tesseract tìm vùng chữ dự phòng. Batch `scan.py` không chạy cắt dự phòng hoặc OCR.
+Mỗi lệnh tạo một thư mục `data/processed/pipeline/<run_id>/` với ảnh, TXT và metadata. Pipeline gọi chung `scan_document()`; ngoài dự phòng khi thiếu góc còn yêu cầu kiểm tra mất chữ sau nắn như trước. Batch SmartDoc `scan.py` không chạy cắt dự phòng hoặc OCR, nên kết quả benchmark detector cũ không bị trộn với nhánh mới.
 
 ## Detect toàn bộ, không tạo ảnh
 

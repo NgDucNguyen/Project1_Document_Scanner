@@ -13,7 +13,7 @@ import numpy as np
 WORKSPACE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(WORKSPACE / "src" / "document_scanner"))
 import pipeline
-from scanner import content_scan
+from scanner import content_scan, scan_image
 
 
 class OcrPipelineTests(unittest.TestCase):
@@ -27,7 +27,7 @@ class OcrPipelineTests(unittest.TestCase):
 
     def test_scanned_input_skips_detector_and_records_configuration(self):
         with patch.object(pipeline, "OUTPUT_ROOT", self.root / "output"), \
-                patch.object(pipeline, "detect_document") as detect, \
+                patch.object(scan_image, "detect_document") as detect, \
                 patch.object(pipeline, "recognize_image", return_value="Hello") as recognize:
             result = pipeline.process_image(self.image_path, "eng", input_type="scan", psm=6)
         self.assertEqual(result, "Hello")
@@ -46,9 +46,9 @@ class OcrPipelineTests(unittest.TestCase):
         detection = {"status": "ok", "corners": corners, "warnings": []}
         matrix = np.eye(3)
         with patch.object(pipeline, "OUTPUT_ROOT", self.root / "output"), \
-                patch.object(pipeline, "detect_document", return_value=detection) as detect, \
-                patch.object(pipeline, "build_scan", return_value=(self.image, matrix, matrix)) as warp, \
-                patch.object(pipeline, "page_crop_seems_wrong", return_value=(False, {})), \
+                patch.object(scan_image, "detect_document", return_value=detection) as detect, \
+                patch.object(scan_image, "build_scan", return_value=(self.image, matrix, matrix)) as warp, \
+                patch.object(scan_image, "page_crop_seems_wrong", return_value=(False, {})), \
                 patch.object(pipeline, "recognize_image", return_value="Hello"):
             result = pipeline.process_image(self.image_path, "eng")
         self.assertEqual(result, "Hello")
@@ -99,8 +99,8 @@ class OcrPipelineTests(unittest.TestCase):
     def test_missing_corners_stops_before_ocr(self):
         detection = {"status": "no_candidate", "corners": None, "warnings": []}
         with patch.object(pipeline, "OUTPUT_ROOT", self.root / "output"), \
-                patch.object(pipeline, "detect_document", return_value=detection), \
-                patch.object(pipeline, "crop_content", return_value=None), \
+                patch.object(scan_image, "detect_document", return_value=detection), \
+                patch.object(scan_image, "crop_content", return_value=None), \
                 patch.object(pipeline, "recognize_image") as recognize:
             with self.assertRaisesRegex(ValueError, "Không tìm được khung"):
                 pipeline.process_image(self.image_path, "eng")
@@ -112,9 +112,9 @@ class OcrPipelineTests(unittest.TestCase):
         details = {"rotation_degrees": -7.0, "box_in_rotated_image": [2, 2, 40, 30]}
         transform = np.eye(3)
         with patch.object(pipeline, "OUTPUT_ROOT", self.root / "output"), \
-                patch.object(pipeline, "detect_document", return_value=detection), \
-                patch.object(pipeline, "crop_content", return_value=(self.image, transform, details)) as crop, \
-                patch.object(pipeline, "build_scan") as warp, \
+                patch.object(scan_image, "detect_document", return_value=detection), \
+                patch.object(scan_image, "crop_content", return_value=(self.image, transform, details)) as crop, \
+                patch.object(scan_image, "build_scan") as warp, \
                 patch.object(pipeline, "recognize_image", return_value="Hello"):
             self.assertEqual(pipeline.process_image(self.image_path, "eng"), "Hello")
         crop.assert_called_once()
@@ -134,10 +134,10 @@ class OcrPipelineTests(unittest.TestCase):
         transform = np.eye(3)
         details = {"rotation_degrees": 0, "box_in_rotated_image": [0, 0, 60, 40]}
         with patch.object(pipeline, "OUTPUT_ROOT", self.root / "output"), \
-                patch.object(pipeline, "detect_document", return_value=detection), \
-                patch.object(pipeline, "build_scan", return_value=(self.image, transform, transform)), \
-                patch.object(pipeline, "page_crop_seems_wrong", return_value=(True, {"scan_reliable_characters": 1})), \
-                patch.object(pipeline, "crop_content", return_value=(self.image, transform, details)), \
+                patch.object(scan_image, "detect_document", return_value=detection), \
+                patch.object(scan_image, "build_scan", return_value=(self.image, transform, transform)), \
+                patch.object(scan_image, "page_crop_seems_wrong", return_value=(True, {"scan_reliable_characters": 1})), \
+                patch.object(scan_image, "crop_content", return_value=(self.image, transform, details)), \
                 patch.object(pipeline, "recognize_image", return_value="Text"):
             pipeline.process_image(self.image_path, "eng")
         output = next((self.root / "output").iterdir())
@@ -195,8 +195,8 @@ class OcrPipelineTests(unittest.TestCase):
         detection = {"status": "no_candidate", "corners": None, "warnings": []}
         details = {"rotation_degrees": 0, "content_box_area_ratio": 0.9}
         with patch.object(pipeline, "OUTPUT_ROOT", self.root / "output"), \
-                patch.object(pipeline, "detect_document", return_value=detection), \
-                patch.object(pipeline, "crop_content", return_value=(self.image, np.eye(3), details)), \
+                patch.object(scan_image, "detect_document", return_value=detection), \
+                patch.object(scan_image, "crop_content", return_value=(self.image, np.eye(3), details)), \
                 patch.object(pipeline, "recognize_image", return_value="Text"):
             pipeline.process_image(self.image_path, "eng")
         output = next((self.root / "output").iterdir())
@@ -226,6 +226,69 @@ class OcrPipelineTests(unittest.TestCase):
         self.assertTrue(suspect)
         self.assertEqual(details["scan_reliable_characters"], 2)
         self.assertEqual(details["source_reliable_characters"], 48)
+
+    def test_largest_cluster_excludes_separate_surrounding_text(self):
+        image = np.full((500, 700, 3), 255, np.uint8)
+        main = [{"text": "main", "box": [x, y, x + 40, y + 20], "confidence": 90}
+                for y in (100, 140, 180) for x in (300, 360, 420)]
+        side = [{"text": "side", "box": [30, y, 70, y + 20], "confidence": 90}
+                for y in (250, 290, 330)]
+        with patch.object(content_scan, "estimate_text_angle", return_value=0), \
+                patch.object(content_scan, "find_text_words", return_value=main + side):
+            cropped, transform, details = content_scan.crop_content(image, "eng")
+        self.assertEqual(details["box_in_rotated_image"], [285, 85, 475, 215])
+        self.assertEqual(len(details["region_selection"]["candidates"]), 2)
+        self.assertEqual(details["region_selection"]["selected"]["word_count"], 9)
+        self.assertFalse(details["region_selection"]["ambiguous"])
+        self.assertEqual(cropped.shape, (130, 190, 3))
+        np.testing.assert_array_equal(transform @ [285, 85, 1], [0, 0, 1])
+
+    def test_two_similar_regions_are_flagged_instead_of_merged(self):
+        image = np.full((500, 700, 3), 255, np.uint8)
+        words = [{"text": "word", "box": [x, y, x + 50, y + 20], "confidence": 90}
+                 for x in (60, 500) for y in (100, 140, 180)]
+        result = content_scan.select_content_region(image, words)
+        self.assertTrue(result["ambiguous"])
+        self.assertEqual(len(result["candidates"]), 2)
+        self.assertLess(result["selected"]["area"], 10000)
+
+    def test_visual_region_preserves_strokes_above_recognized_words(self):
+        image = np.full((600, 800, 3), 230, np.uint8)
+        # Tesseract chỉ thấy ba từ cuối; nét ảnh phải giữ cả phần đầu trang.
+        for y in range(100, 501, 25):
+            cv2.putText(image, "Document text line", (250, y), cv2.FONT_HERSHEY_SIMPLEX,
+                        .55, (80, 60, 40), 1, cv2.LINE_AA)
+        words = [{"text": "word", "box": [x, 480, x + 35, 500], "confidence": 90}
+                 for x in (260, 310, 360)]
+        result = content_scan.select_content_region(image, words)
+        self.assertEqual(result["selected"]["source"], "text_strokes")
+        self.assertLess(result["selected"]["box"][1], 110)
+        self.assertGreater(result["selected"]["box"][3], 490)
+
+    def test_scan_only_with_corners_skips_text_detection(self):
+        corners = np.array([[5, 5], [55, 5], [55, 35], [5, 35]], np.float32)
+        detection = {"corners": corners, "status": "uncertain", "warnings": []}
+        with patch.object(scan_image, "detect_document", return_value=detection), \
+                patch.object(scan_image, "crop_content") as crop, \
+                patch.object(scan_image, "page_crop_seems_wrong") as check:
+            scanned, info = scan_image.scan_document(self.image)
+        crop.assert_not_called()
+        check.assert_not_called()
+        self.assertEqual(scanned.shape, (30, 50, 3))
+        self.assertEqual(info["corners_original"], corners.tolist())
+        self.assertIsNone(info["content_detection"])
+
+    def test_scan_only_automatically_falls_back_without_page_warp(self):
+        detection = {"corners": None, "status": "no_candidate", "warnings": []}
+        details = {"region_selection": {"ambiguous": True}}
+        with patch.object(scan_image, "detect_document", return_value=detection), \
+                patch.object(scan_image, "build_scan") as warp, \
+                patch.object(scan_image, "crop_content", return_value=(self.image, np.eye(3), details)):
+            scanned, info = scan_image.scan_document(self.image)
+        warp.assert_not_called()
+        self.assertEqual(info["scanner_status"], "content_fallback")
+        self.assertIn("competing_content_regions", info["warnings"])
+        self.assertIsNone(info["H_source_to_warp"])
 
 
 if __name__ == "__main__":
