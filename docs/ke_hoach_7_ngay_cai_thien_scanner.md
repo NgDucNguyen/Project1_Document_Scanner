@@ -14,7 +14,7 @@ Báo cáo đầy đủ, phương pháp, số liệu và ảnh minh họa nằm t
 | 4 | Thử DBNet cho vùng chữ dự phòng | Đã làm: bản thử mất nội dung, giữ Tesseract; mã thử không dùng đã gỡ |
 | Bổ sung | Chạy toàn SmartDoc, thử mô hình bốn góc DocAligner | Đã làm: đủ 24.889 ảnh cho cả hai phương pháp |
 | 5 | Kiểm thử ảnh mới, tiếng Việt và ảnh không có giấy | Đang làm: thử hai ảnh viết tay, dùng chung scanner với pipeline, nắn vùng chữ dự phòng và làm rõ ảnh; chưa đủ tập đánh giá/ảnh âm tính |
-| 6 | Tổng hợp lỗi và chốt cấu hình sau kiểm thử thực tế | Đang chốt DocAligner làm phương pháp chính để kiểm thử tiếp |
+| 6 | Tổng hợp lỗi và chốt cấu hình sau kiểm thử thực tế | Đã chốt detector DocAligner và chấm test cuối: 4.201/4.202 đạt IoU ≥ 0,9; toàn luồng trên ảnh mới vẫn cần kiểm thử |
 | 7 | Báo cáo và demo pipeline | Đã cập nhật báo cáo MD/Word về scan riêng, dự phòng và làm rõ ảnh; chưa hoàn tất đánh giá ngày 5 |
 
 ## Việc cần làm ở ngày 5

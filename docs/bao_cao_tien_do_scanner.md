@@ -1,224 +1,250 @@
-# Báo cáo tiến độ Document Scanner
+# Báo cáo tiến độ Project 1 Document Scanner
 
-**Sinh viên:** Nguyễn Đức Nguyên — **MSSV:** 202416305  
-**Đơn vị:** Đại học Bách khoa Hà Nội — **Cập nhật:** 19/11/2026
+**Sinh viên:** Nguyễn Đức Nguyên — **MSSV:** 202416305
+**Đơn vị:** Đại học Bách khoa Hà Nội — **Cập nhật nội dung:** 19/11/2026
+**Mục đích:** Chuẩn bị trình bày trong buổi báo cáo tuần tới, dựa trên kết quả hiện có. Ngày báo cáo cụ thể chưa chốt.
 
-Báo cáo trình bày kết quả định vị tài liệu trên SmartDoc và phần scan một ảnh vừa được hoàn thiện thêm: chọn vùng nội dung chính, nắn phối cảnh và tăng độ rõ chữ. Luồng scan có thể chạy riêng; pipeline hiện đã gọi chung scanner trước khi chuyển ảnh sang OCR. Các thử nghiệm ảnh mới còn ít, chưa đủ để kết luận scanner hoạt động tốt trên mọi điều kiện.
+## 1 Công việc đã thực hiện
 
-## Kết quả chính và phạm vi đánh giá
+### Hustack
 
-Em đã xây dựng và cải thiện scanner dựa trên Canny/Otsu, phân tích các trường hợp thất bại, sau đó tích hợp mô hình DocAligner FastViT-T8 đã huấn luyện sẵn để dự đoán bốn góc tài liệu. DocAligner hiện là phương pháp chính; scanner truyền thống được giữ để đối chứng. OCR tiếng Anh tiếp tục dùng Tesseract/FUNSD.
+Giữ nội dung theo báo cáo tuần trước: hoàn thiện các bài thực hành W5 trên Hustack. Chưa bổ sung tiến độ Hustack mới trong lần cập nhật này.
 
-Hai phương pháp đã chạy detect trên cùng 24.889 ảnh SmartDoc. Bộ dữ liệu gồm 30 tài liệu gốc trên 5 nền, chia theo tài liệu thành train 17.495 ảnh, validation 3.192 ảnh và test 4.202 ảnh. Nhãn chỉ dùng chấm điểm sau dự đoán; không dùng để chọn khung khi xử lý ảnh.
+### Project 1 Document Scanner
+
+Trong giai đoạn này, em tập trung cải thiện bước tìm khung và cắt/nắn tài liệu. Nhánh scanner truyền thống Canny/Otsu được phân tích lỗi, bổ sung cạnh trên ảnh xám và kênh Lab để tăng khả năng tìm mép giấy nhạt. Sau đó em tích hợp DocAligner FastViT-T8 đã huấn luyện sẵn để so sánh trên cùng dữ liệu và chọn làm detector mặc định.
+
+Khi DocAligner không trả khung phù hợp, scanner chuyển sang tìm vùng chữ chính bằng Tesseract kết hợp xử lý ảnh, thay vì gom tất cả chữ của các tờ giấy xung quanh. Nhánh này thử nắn phối cảnh nếu ước lượng được tứ giác đủ bằng chứng. Ảnh sau cắt được kiểm tra chất lượng và tăng độ rõ chữ; ảnh màu trước tăng cường vẫn được giữ để đối chiếu.
+
+Scanner đã chạy độc lập được và dùng chung với pipeline OCR. Trọng tâm báo cáo lần này là định vị và tạo ảnh scan; phần OCR tiếng Anh được cập nhật ngắn để nêu khả năng nối luồng và những việc cần kiểm chứng tiếp.
+
+## 2 Sản phẩm đạt được
+
+| Sản phẩm | Trạng thái hiện tại |
+| --- | --- |
+| Scanner Canny/Otsu cải tiến | Giữ mã nguồn và kết quả làm đối chứng |
+| Detector DocAligner đã huấn luyện sẵn | Là phương pháp mặc định, suy luận ONNX bằng OpenCV |
+| Hai lượt detect toàn SmartDoc | Cả hai detect đủ 24.889 ảnh; DocAligner đã chấm test cuối |
+| Scan một ảnh và cắt dự phòng | Đã nối chung trong scanner, thử trên hai ảnh viết tay |
+| Ảnh minh họa cho báo cáo | 6 ca classic, 2 ví dụ heatmap DocAligner và 1 ảnh trước/sau |
+| Đầu ra để kiểm tra | Ảnh scan, ảnh màu, vùng chọn và metadata; OCR có văn bản riêng |
+
+Các sản phẩm trên có phạm vi khác nhau: chạy đủ ảnh không có nghĩa mọi khung đều đúng, và có ảnh scan không đồng nghĩa OCR chính xác. Chưa hoàn thành kiểm thử độc lập trên ảnh mới và ảnh không có giấy.
+
+<!-- PAGEBREAK -->
+
+## 3 Đánh giá và thảo luận kết quả
+
+### 3.1 Dữ liệu và cách đánh giá
+
+SmartDoc gồm 24.889 ảnh của 30 tài liệu gốc trên 5 nền. Dữ liệu được chia theo tài liệu: train 17.495 ảnh, validation 3.192 ảnh, test 4.202 ảnh. Các frame của cùng tài liệu không bị trộn giữa các tập. Nhãn chỉ dùng đánh giá sau dự đoán, không truyền vào detector để chọn khung.
+
+IoU bằng diện tích giao chia diện tích hợp của hai tứ giác dự đoán và nhãn thật. Ảnh không có khung tính IoU bằng 0. Tỷ lệ đạt được tính với ngưỡng IoU ≥ 0,9; không bỏ các ca thất bại khỏi mẫu số. Ngày 19/11/2026, sau khi chốt phương án, em chấm test DocAligner từ dự đoán đã lưu. Không dùng điểm test để chỉnh cấu hình; classic test vẫn chỉ lưu dự đoán.
 
 | Chỉ số | Canny/Otsu cải tiến | DocAligner FastViT-T8 |
 | --- | ---: | ---: |
-| Trả được bốn góc trên toàn bộ dữ liệu | 20.503/24.889 | 24.889/24.889 |
+| Trả được bốn góc toàn dữ liệu | 20.503/24.889 | 24.889/24.889 |
 | Train đạt IoU ≥ 0,9 | 13.366/17.495 (76,40%) | 17.493/17.495 (99,99%) |
 | Validation đạt IoU ≥ 0,9 | 2.424/3.192 (75,94%) | 3.192/3.192 (100%) |
+| Test đạt IoU ≥ 0,9 | Chưa chấm | 4.201/4.202 (99,98%) |
 | IoU trung bình validation | 0,7503 | 0,9893 |
 
-IoU là diện tích giao chia diện tích hợp giữa khung dự đoán và nhãn thật. Ảnh không trả được khung tính IoU bằng 0. Các tỷ lệ trên là đánh giá detect; chưa nắn/lưu toàn bộ 24.889 ảnh và chưa đánh giá OCR toàn bộ. Test chỉ lưu dự đoán, chưa chấm IoU.
+Đánh giá cuối chấm lại 24.889 bộ góc DocAligner đã lưu: train/validation khớp mốc cũ; test đạt 4.201/4.202 (99,98%), IoU trung bình 0,9889. Manifest và trọng số khớp hash lượt gốc, mọi khung đều qua kiểm tra hình học hiện tại. Đã đóng băng nguồn/cấu hình trước chấm; không chạy lại detector. Đây chỉ là đánh giá định vị bốn góc, chưa chấm toàn luồng vùng chữ dự phòng, làm rõ ảnh hoặc OCR. Tập train của dự án chưa được dùng để huấn luyện DocAligner.
 
-| Nền trên validation | Canny/Otsu cải tiến đạt | DocAligner đạt |
-| --- | ---: | ---: |
-| background01 | 782/797 | 797/797 |
-| background02 | 747/780 | 780/780 |
-| background03 | 746/751 | 751/751 |
-| background04 | 149/515 | 515/515 |
-| background05 | 0/349 | 349/349 |
+### 3.2 Scanner truyền thống và các cải tiến
 
-**Giới hạn cần nêu:** chưa xác minh dữ liệu huấn luyện sẵn của DocAligner có trùng SmartDoc hay không. Kết quả cao trên SmartDoc chưa chứng minh khả năng tổng quát trên tài liệu mới hoặc khả năng từ chối ảnh không có giấy. Em chưa tự huấn luyện hoặc tinh chỉnh mô hình này.
+`scanner/classic.py` thu nhỏ ảnh cạnh dài tối đa 1.000 pixel, làm xám và làm mượt. Canny tìm biên thay đổi sáng mạnh; Otsu tự chọn ngưỡng sáng/tối. Closing nối khe nhỏ. Từ contour, chương trình lấy bao lồi và xấp xỉ đa giác để tạo tứ giác ứng viên.
 
-<!-- PAGEBREAK -->
+Contour là đường bao của một vùng trong ảnh nhị phân. Nó có thể thuộc mép giấy, bìa sách hoặc khung bên trong trang, nên không phải contour nào cũng là tài liệu. Các tứ giác được lọc và chấm theo diện tích, hình học, vị trí và bằng chứng cạnh; điểm dùng xếp hạng, không phải xác suất đúng.
 
-## Phương pháp đã xây dựng và tích hợp
+Em bổ sung Canny ngưỡng thấp trên ảnh xám và cạnh trên kênh Lab b để tìm thêm mép giấy nhạt. Ứng viên mới cần bằng chứng trên từng cạnh; khung quá yếu bị từ chối. Tỷ lệ validation đạt IoU ≥ 0,9 tăng từ mốc cũ 60,49% lên 75,94%. Nhánh này vẫn dễ chọn nhầm vật thể hoặc khung bên trong khi nền phức tạp.
 
-### Scanner truyền thống làm đối chứng
+Trên validation, classic đạt lần lượt 782/797, 747/780, 746/751, 149/515 và 0/349 ảnh ở nền 1–5. DocAligner đạt toàn bộ từng nền. Hai nền cuối là nơi nhánh truyền thống còn hạn chế rõ; Các trường hợp dưới đây minh họa trực tiếp từng hạn chế của scanner truyền thống; không thay thế thống kê toàn tập.
 
-Mã ở `src/document_scanner/scanner/classic.py`. Ảnh được thu nhỏ cạnh dài tối đa 1.000 pixel, làm xám và làm mượt. Canny tìm cạnh, Otsu tách vùng sáng/tối; phép closing nối các khe nhỏ. Từ contour, chương trình lấy convex hull và thử xấp xỉ thành tứ giác.
-
-Ứng viên được lọc theo tỷ lệ diện tích, vị trí so với biên ảnh, độ dài cạnh và độ bám cạnh Canny; điểm tổng hợp dùng để chọn khung. Điểm này là quy tắc so sánh, không phải xác suất khung đúng.
-
-Sau phân tích lỗi, em bổ sung nhánh Canny ngưỡng thấp trên ảnh xám và kênh Lab b để tìm thêm cạnh giấy nhạt. Các nhánh mới yêu cầu bằng chứng trên từng cạnh. Khung điểm thấp bị từ chối, khung yếu được gắn cảnh báo. Validation tăng từ 60,49% trước cải tiến lên 75,94%; nền 4–5 vẫn còn khó.
-
-### DocAligner dự đoán bốn góc bằng học sâu
-
-Mã ở `src/document_scanner/scanner/docaligner.py`. Mô hình FastViT-T8 đã huấn luyện sẵn được tải từ DocsaidLab và chạy ONNX bằng OpenCV, không cần PyTorch trong môi trường suy luận hiện tại.
-
-1. Giữ ảnh BGR, resize 256 × 256 và chuẩn hóa chia 255.
-2. Mô hình tạo bốn heatmap, mỗi heatmap thể hiện vị trí một góc.
-3. Loại giá trị dưới 0,3; áp dụng Otsu trên từng heatmap.
-4. Lấy vùng lớn nhất, tính trọng tâm để ra tọa độ góc trên ảnh gốc.
-5. Sắp thứ tự, kiểm tra bốn góc và chuyển sang nắn phối cảnh.
-
-DocAligner không dùng Canny để tìm góc. Otsu ở đây xử lý đầu ra mạng, khác với Otsu trên ảnh của scanner truyền thống. Adapter theo các bước upstream công bố; chưa kiểm chứng tương đương số học với toàn bộ gói Python chính thức.
-
-### Scanner dùng chung cho hai cách chạy
-
-`scan_image.py` cung cấp hàm `scan_document()`. Chạy riêng sẽ nhận ảnh và trả ảnh scan cùng thông tin xử lý, không xuất văn bản OCR cuối. `pipeline.py` gọi chính hàm này với đầu vào ảnh chụp rồi chuyển ảnh kết quả cho bộ nhận dạng chữ.
-
-Luồng scan hiện tại: ảnh → DocAligner → nắn nếu góc hợp lệ → chọn vùng chữ chính nếu thiếu khung hoặc ảnh nắn không đạt kiểm tra → kiểm tra chất lượng → làm rõ ảnh → lưu kết quả. Đây là luồng đã tích hợp trong scanner, không chỉ là cách xử lý riêng của pipeline OCR.
-
-Nhánh dự phòng vẫn gọi Tesseract để lấy vị trí các hộp từ. Các hộp từ đóng vai trò gợi ý vùng nội dung; văn bản nhận dạng ở bước này chưa phải kết quả OCR cuối. Canny/Hough còn dùng để ước lượng góc nghiêng nhỏ; Otsu hỗ trợ mặt nạ nét chữ và giấy. Nhánh Canny/Otsu truyền thống vẫn được giữ riêng trong `classic.py`.
-
-Phần em thực hiện gồm xây dựng phương pháp truyền thống, tích hợp mô hình có sẵn, xử lý đầu ra, nối scanner/OCR và đánh giá so sánh. Không trình bày DocAligner là mô hình do em tự huấn luyện.
+Đối chiếu vấn đề thiếu khung: classic giảm từ 6.318 ảnh ở mốc cũ xuống 4.386 ảnh sau cải tiến. Phân tích 200 ảnh ở mốc classic ban đầu có 98 ảnh đạt, 24 ảnh có ứng viên gần nhưng chưa chính xác và 78 ảnh không có ứng viên đạt IoU ≥ 0,5. Không có ca đã sinh khung đạt IoU ≥ 0,9 rồi bị lọc loại hoặc xếp hạng sai. Trong tập này, điểm nghẽn chủ yếu là tạo đường bao/ứng viên; chưa quy riêng mọi lỗi cho Canny hay Otsu.
 
 <!-- PAGEBREAK -->
 
-## Minh họa các trường hợp khó
+Các hình đối chiếu cùng ảnh: **trái là Canny/Otsu cải tiến, phải là DocAligner**. Xanh lá là nhãn thật, đỏ là dự đoán. Đây là các ca khó được chọn để giải thích lỗi.
 
-Các cặp dưới dùng tọa độ đã lưu trên cùng ảnh. Bên trái là Canny/Otsu cải tiến, bên phải là DocAligner. Đường xanh lá là nhãn thật; đường đỏ là dự đoán. Đây là ví dụ minh họa được chọn để thể hiện lỗi, không thay cho thống kê toàn bộ dữ liệu.
+### 3.2.1 Chọn nhầm bìa sách
 
-![Chọn nhầm sách](../artifacts/scanner_dev/comparison/01_wrong_book_corners.jpg)
+Classic trả khung bám bìa sách thay vì tờ giấy, trạng thái uncertain. IoU bằng 0 là khung sai, không phải chương trình không chạy.
 
-**Hình 1. Chọn nhầm bìa sách.** Classic chọn sách thay vì tờ giấy, IoU = 0; DocAligner bám khung giấy với IoU = 0,9920. Góc bị che cần được mô hình suy ra, không phục hồi được chữ đã bị vật thể che.
+Vật thể có cạnh rõ và dạng tứ giác có thể được chấm cao hơn giấy cần quét. Cần xem các ứng viên và bằng chứng cạnh; không chỉ chọn vùng lớn hoặc đường bao rõ nhất.
 
-![Giấy gần màu nền](../artifacts/scanner_dev/comparison/03_paper_similar_to_table_corners.jpg)
+![Chọn nhầm bìa sách](../artifacts/scanner_dev/comparison/01_wrong_book_corners.jpg)
 
-**Hình 2. Giấy gần màu bàn.** Classic không trả khung; DocAligner có IoU = 0,9915. Đây là một điểm yếu của việc dựa chủ yếu vào biên và ngưỡng hóa trên ảnh.
+**Hình 1. Chọn nhầm bìa sách.** **Ảnh:** `background05/patent003/frame_0030.jpeg`. **IoU classic:** 0.0000; **DocAligner:** 0.9920.
 
-![Khung bên trong mất lề](../artifacts/scanner_dev/comparison/04_inner_frame_lost_margin_corners.jpg)
+### 3.2.2 Giấy có vật thể che và cạnh bị gián đoạn
 
-**Hình 3. Khung bên trong làm mất lề.** Classic có IoU = 0,6416; DocAligner đạt 0,9922. Ảnh sau nắn của các ca này nằm cùng thư mục, tên kết thúc bằng `_scans.jpg`.
+Classic không trả ứng viên được chấp nhận, trạng thái no_candidate. DocAligner vẫn dự đoán được khung trang trong ví dụ này.
 
-<!-- PAGEBREAK -->
+Các vật nằm trên giấy làm cạnh đứt đoạn và sinh thêm contour. Muốn xác định bị bỏ sót ở khâu tạo hay lọc ứng viên phải xem dữ liệu chẩn đoán; chỉ ảnh cuối chưa đủ kết luận chính xác khâu gây lỗi.
 
-## Những phần scan được bổ sung
+![Giấy có vật thể che và cạnh bị gián đoạn](../artifacts/scanner_dev/comparison/02_occluded_page_corners.jpg)
 
-### Chọn vùng tài liệu chính khi thiếu bốn góc
-
-DocAligner có thể không trả được tứ giác khi giấy bị cắt khỏi ảnh, nền phức tạp hoặc nhiều tờ chồng nhau. Khi đó `content_scan.py` thử chỉnh nghiêng nhỏ, lấy hộp từ từ Tesseract và tìm các cụm nét chữ bằng xử lý ảnh. Chương trình chọn vùng chữ có diện tích lớn nhất trong các vùng có đủ bằng chứng chữ, thay vì lấy hình chữ nhật bao tất cả từ trên toàn ảnh.
-
-Cụm chữ phải có hộp từ đáng tin hỗ trợ. Các vùng gần nhau được gom lại và thêm lề nhỏ để giảm cắt mất dấu. Nếu hai vùng có diện tích gần nhau, kết quả được gắn cảnh báo để xem lại. Quy tắc này giúp giảm lấy giấy phụ nhưng chưa hiểu ngữ nghĩa đâu là trang người dùng muốn chọn.
-
-### Nắn phối cảnh cho vùng chữ dự phòng
-
-Sau khi tìm vùng chính, scanner thử tìm tứ giác giấy trong vùng đó. Chỉ nắn thêm khi hình học phù hợp và các kiểm tra giữ hộp từ, nét chữ đạt yêu cầu. Tọa độ được đổi về ảnh gốc rồi nắn từ ảnh gốc một lần để hạn chế mờ do nội suy nhiều lần. Nếu không đủ bằng chứng, chương trình giữ crop đã chỉnh nghiêng.
-
-Các tỷ lệ giữ hộp từ và nét chữ chỉ là tín hiệu kiểm tra nội bộ, không phải nhãn thật hoặc độ chính xác OCR. Khung dự phòng là khung ước lượng theo nội dung, không được coi như bốn góc giấy đã xác minh. Góc ngoài ảnh được đệm trắng và cảnh báo; chữ nằm ngoài ảnh chụp không thể phục hồi.
-
-### Kiểm tra chất lượng và làm rõ chữ
-
-`appearance.py` kiểm tra ảnh trước tăng cường: kích thước, tỷ lệ vùng giấy, lượng nét chữ và độ nét. Ảnh trắng, quá tối hoặc quá mờ có thể bị từ chối. Đây là bộ lọc theo quy tắc cho giấy sáng có chữ, chưa thay thế bộ phân loại ảnh không có tài liệu.
-
-Ảnh đạt kiểm tra được cân bằng nền sáng trên kênh sáng Lab, tăng tương phản nét chữ và làm sắc nhẹ. Màu mực được giữ ở vùng chữ; phần nền ngoài mặt nạ được làm trắng. Cấu hình nằm trong `configs/scan.json`, hiện dùng mức làm sắc 0,45 và sigma 0,7. Ảnh trước tăng cường vẫn được lưu để đối chiếu.
-
-Mục tiêu là chữ dễ nhìn hơn như mẫu CamScanner người dùng đưa, chưa khẳng định chất lượng tương đương ứng dụng đó. Bộ lọc có thể làm mất nét quá nhạt, đường kẻ hoặc chi tiết hình vẽ. Nắn phối cảnh chưa xử lý cong trang và chưa tự xác định mọi trường hợp xoay ngược 90/180 độ theo nghĩa của chữ.
+**Hình 2. Giấy có vật thể che và cạnh bị gián đoạn.** **Ảnh:** `background05/letter001/frame_0001.jpeg`. **IoU classic:** 0.0000; **DocAligner:** 0.9880.
 
 <!-- PAGEBREAK -->
 
-## Minh họa trên ảnh chụp thực tế mới
+### 3.2.3 Giấy gần màu mặt bàn
 
-![Đối chiếu ảnh trước và sau cải thiện](../artifacts/history/scan_report_20261118/comparison.jpg)
+Classic không tìm được khung, trạng thái no_candidate; đường xanh cho thấy mép giấy tương phản thấp với nền.
 
-**Hình 4. Ảnh viết tay có nhiều tờ giấy.** Bên trái là kết quả trước bổ sung nắn phối cảnh cho vùng chữ; bên phải là kết quả sau cải thiện. Ảnh lưu làm mốc trước/sau; mức làm sắc hiện tại đã được chỉnh nhẹ thêm sau mốc này.
+Cạnh giấy yếu làm Canny khó nối đủ biên; ngưỡng Otsu cũng có thể không tách rõ giấy với bàn. Bổ sung kênh màu cải thiện một phần nhưng không đảm bảo xử lý mọi nền tương tự.
 
-### Kết quả quan sát trên hai ảnh
+![Giấy gần màu mặt bàn](../artifacts/scanner_dev/comparison/03_paper_similar_to_table_corners.jpg)
 
-Với `anh_viet.jpg`, DocAligner trả được khung và scanner nắn theo bốn góc. Với `anh_2.jpg`, điểm detector khoảng 0,0374 và không có khung được chấp nhận; nhánh dự phòng chọn vùng chữ chính, ước lượng tứ giác và nắn lại. Sau xử lý, nền sáng hơn, chữ đậm hơn và vùng chính thẳng hơn so với kết quả trước.
+**Hình 3. Giấy gần màu mặt bàn.** **Ảnh:** `background04/letter001/frame_0001.jpeg`. **IoU classic:** 0.0000; **DocAligner:** 0.9915.
 
-Ảnh `anh_2.jpg` bị thiếu một phần trang ngay từ lúc chụp. Kết quả vẫn có cảnh báo khung ước lượng và đệm trắng ngoài ảnh. Một số mép giấy phụ hoặc đường viền còn có thể xuất hiện; chưa đạt mục tiêu loại sạch mọi phần thừa. Người dùng cần kiểm tra tiêu đề, dấu, chân trang và nét mảnh trên ảnh màu đối chiếu.
+### 3.2.4 Chọn khung bên trong và mất lề
 
-Đây là hai ca thử chức năng, chưa có nhãn bốn góc hoặc TXT chuẩn. Vì vậy chưa tính IoU, tỷ lệ giữ nội dung thật hoặc CER/WER cho hai ảnh này. Điểm SmartDoc ở đầu báo cáo là của lượt detect đã lưu trước các thay đổi vùng chữ và tăng cường ảnh; chưa chạy lại 24.889 ảnh với luồng scan mới.
+Classic có tứ giác nhưng khung đỏ nằm bên trong khung xanh; trạng thái uncertain. Nắn theo khung này sẽ làm thiếu một phần lề trang.
 
-<!-- PAGEBREAK -->
+Đường kẻ hoặc vùng in trong trang có thể có cạnh rõ hơn mép ngoài. Cần xem cả overlay và ảnh sau nắn; trả được bốn góc chưa đủ để coi scan đạt.
 
-## Kết quả còn hạn chế và tình hình OCR
+![Chọn khung bên trong và mất lề](../artifacts/scanner_dev/comparison/04_inner_frame_lost_margin_corners.jpg)
 
-So với classic, DocAligner có thêm 4.128 ảnh train đạt ngưỡng và một ảnh cũ đạt bị giảm; validation thêm 768 ảnh đạt và không mất ảnh đạt cũ. Hai ảnh train DocAligner chưa đạt là `background02/patent004/frame_0107.jpeg` (IoU 0,5060) và `background02/tax004/frame_0166.jpeg` (0,5157).
-
-Lượt full detect DocAligner mất khoảng 56 phút; classic khoảng 14 phút. Hai lượt có thể khác tải máy nên chưa dùng làm phép đo tốc độ có kiểm soát. Trạng thái `uncertain` của DocAligner trong lượt thử cũ là cờ thử nghiệm. Mã hiện tại giữ cảnh báo `document_presence_not_verified` vì chưa đánh giá đầy đủ ảnh âm tính, không phải vì tất cả khung có IoU thấp.
-
-### OCR tiếng Anh và vùng chữ dự phòng
-
-Tesseract với mô hình `funsd_eng` đã tinh chỉnh vẫn là bộ đọc tiếng Anh. DocAligner chỉ thay phần tìm góc, không phải mô hình nhận dạng chữ. Lượt đo FUNSD trước đây có CER 24,61% và WER 48,97% trên 50 trang test, theo đánh giá trong các vùng nhãn; tập này đã được dùng trong quá trình phát triển nên không xem là đánh giá độc lập cuối cùng.
-
-Đã thử DBNet cho vùng chữ dự phòng trên 54 ảnh. Trên 30 trang FUNSD, cách Tesseract giữ đủ 4.595/4.616 hộp từ (99,55%), bản DBNet + gom cụm giữ 4.092/4.616 (88,65%). Tiêu chí giữ đủ là ít nhất 98% diện tích hộp từ nằm trong crop; ảnh không tạo được crop tính giữ 0 hộp từ. Vì còn bỏ sót chữ nhỏ và chân trang, DBNet không được chọn và mã thử đã được dọn.
-
-Ở lượt thử trước khi bổ sung bộ làm rõ ảnh hiện tại, đã chạy pipeline với `anh.jpg` và văn bản chuẩn:
-
-| Scanner trước OCR | CER | WER |
-| --- | ---: | ---: |
-| Canny/Otsu cải tiến | 2,64% | 5,80% |
-| DocAligner | 3,02% | 4,35% |
-
-Các số liệu OCR trên là mốc lịch sử, chưa đo lại sau thay đổi scanner và bộ làm rõ ảnh. Kết quả một ảnh có hai chỉ số trái chiều, không đủ để kết luận OCR phương pháp nào tốt hơn. IoU khung trang không đo độ nét, khả năng giữ dấu hay thứ tự đọc. OCR tiếng Việt và ảnh chụp mới chưa được đánh giá đầy đủ. FUNSD tiếng Anh không chứng minh khả năng đọc chữ viết tay tiếng Việt hoặc công thức toán trong hai ảnh mới.
-
-### Việc cần làm tiếp
-
-1. Chuẩn bị tập ảnh mới có tài liệu tiếng Việt/Anh, nền khó và ảnh không có giấy.
-2. Gán bốn góc cho ảnh có tài liệu; quy định rõ sách, nhiều tờ giấy và vật che được xử lý thế nào.
-3. Đo IoU, tỷ lệ không tìm thấy và nhận nhầm; kiểm tra mất tiêu đề, chân trang và dấu tiếng Việt.
-4. Dùng một số ảnh có TXT chuẩn để đánh giá OCR sau cắt/nắn; chưa tự động chọn cấu hình theo nhãn test.
+**Hình 4. Chọn khung bên trong và mất lề.** **Ảnh:** `background04/tax002/frame_0001.jpeg`. **IoU classic:** 0.6416; **DocAligner:** 0.9922.
 
 <!-- PAGEBREAK -->
 
-## Quản lý dự án và cách tái hiện
+### 3.2.5 Khung trong trên một nền khác
 
-Đã gộp mô hình mới vào scanner chính, giữ classic làm đối chứng và gỡ các script thử không còn dùng. `docs/results/` chỉ giữ bảng so sánh chính và danh sách 200 ảnh phát triển. Hồ sơ cũ ở `docs/history/`; hai lượt detect toàn bộ và ảnh so sánh được giữ riêng. Sau xác nhận của người dùng, đã xóa 258 file thử và mô hình DBNet không dùng, khoảng 100 MB.
+Classic tiếp tục chọn khung nhỏ hơn trang trên background02, trạng thái uncertain. Sai lệch vừa phải vẫn làm IoU dưới 0,9.
 
-Sau thay đổi dùng chung scanner và chống tạo kết quả lặp, 51 kiểm thử đã đạt. Sau lần chỉnh làm sắc nhẹ gần nhất, 11 kiểm thử liên quan đã đạt; chưa chạy lại toàn bộ bộ kiểm thử sau lần chỉnh này. Kiểm thử bao gồm hình học, chọn cụm chữ, kiểm tra ảnh kém chất lượng và quản lý đầu ra; không thay cho kiểm thử thực tế độc lập.
+Lỗi chọn vùng bên trong không chỉ xuất hiện ở nền 4–5. Cần kiểm tra vùng in sát mép, tiêu đề và chân trang để tránh khung nhìn hợp lý nhưng mất nội dung.
 
-### Chạy scan riêng
+![Khung trong trên một nền khác](../artifacts/scanner_dev/comparison/05_inner_frame_background02_corners.jpg)
 
-Chạy từ gốc dự án với venv đã kích hoạt:
+**Hình 5. Khung trong trên một nền khác.** **Ảnh:** `background02/tax002/frame_0169.jpeg`. **IoU classic:** 0.7587; **DocAligner:** 0.9869.
+
+### 3.2.6 Từ chối khung yếu dù ảnh có giấy
+
+Classic trả trạng thái low_confidence nên không xuất khung được chấp nhận. IoU đánh giá tính 0; điều này khác với chọn nhầm một vật thể.
+
+Cơ chế từ chối giúp hạn chế khung sai nhưng có thể bỏ sót trang thật. Phải đo đồng thời số khung đúng, số bỏ sót và số nhận nhầm, thay vì chỉ tăng tỷ lệ trả khung.
+
+Cụ thể, classic từ chối khi điểm ứng viên tốt nhất dưới 5,0; từ 5,0 đến dưới 5,75 thì cảnh báo khung yếu. Luồng scan còn kiểm tra ảnh trước tăng cường và thử vùng chữ nếu khung không đạt. Không tìm được vùng đủ bằng chứng hoặc ảnh cuối không đạt chất lượng thì báo thất bại. Các quy tắc này chưa bảo đảm loại hết bìa sách có chữ; cần đo tỷ lệ nhận nhầm trên tập ảnh không có tài liệu.
+
+![Từ chối khung yếu dù ảnh có giấy](../artifacts/scanner_dev/comparison/06_weak_frame_rejected_corners.jpg)
+
+**Hình 6. Từ chối khung yếu dù ảnh có giấy.** **Ảnh:** `background01/tax002/frame_0001.jpeg`. **IoU classic:** 0.0000; **DocAligner:** 0.9885.
+
+<!-- PAGEBREAK -->
+
+### 3.3 DocAligner và luồng scan hiện tại
+
+DocAligner FastViT-T8 là mô hình đã huấn luyện sẵn của DocsaidLab, được chạy ONNX bằng OpenCV. Em thực hiện tích hợp, xử lý đầu ra và đánh giá; chưa tự huấn luyện hoặc tinh chỉnh mô hình này. Chưa xác minh dữ liệu huấn luyện sẵn có trùng SmartDoc hay không, nên điểm cao chưa chứng minh khả năng tổng quát hóa độc lập.
+
+Ảnh BGR được resize 256 × 256 và chia 255. Mạng tạo bốn heatmap tương ứng bốn góc. Adapter loại giá trị dưới 0,3, dùng Otsu trên heatmap, lấy vùng lớn nhất và tính trọng tâm. Góc được đổi về ảnh gốc, sắp thứ tự, kiểm tra rồi nắn phối cảnh. Chưa kiểm chứng tương đương số học với toàn bộ gói Python upstream.
+
+**Vị trí dùng Canny và Otsu:** classic dùng chúng trực tiếp trên ảnh để tìm ứng viên. DocAligner không dùng Canny tìm góc; Otsu của adapter xử lý heatmap đầu ra mạng. Trong nhánh dự phòng, Canny/Hough hỗ trợ chỉnh nghiêng nhỏ, Otsu hỗ trợ mặt nạ nét chữ và giấy.
+
+Hai ví dụ dưới minh họa riêng DocAligner: bên trái là ảnh gốc với khung đỏ và bốn góc vàng; bên phải là bốn heatmap thực tế từ mô hình. Vùng màu nóng biểu thị giá trị dự đoán cao. H1–H4 là thứ tự kênh đầu ra; TL/TR/BR/BL là thứ tự hình học sau sắp góc, không mặc định đồng nhất với thứ tự kênh.
+
+![DocAligner và bốn heatmap ví dụ 1](../artifacts/scanner_dev/comparison/docaligner_heatmap_01.jpg)
+
+Hình 7. Có bìa sách cạnh tranh: DocAligner dự đoán khung tờ giấy, IoU = 0,9920; classic chọn nhầm sách, IoU = 0. Ảnh background05/patent003/frame_0030.jpeg.
+
+![DocAligner và bốn heatmap ví dụ 2](../artifacts/scanner_dev/comparison/docaligner_heatmap_02.jpg)
+
+Hình 8. Giấy gần màu bàn: DocAligner dự đoán đủ bốn góc, IoU = 0,9915; classic không trả khung. Ảnh background04/letter001/frame_0001.jpeg.
+
+Heatmap là đầu ra mạng, không phải ảnh cạnh Canny hay ảnh Otsu của trang giấy. Sau khi mạng dự đoán, adapter mới ngưỡng hóa heatmap bằng Otsu và lấy trọng tâm vùng để giải mã góc. Hai dự đoán đã được đối chiếu với tọa độ benchmark đã lưu; đây là hình minh họa, không phải phép đánh giá toàn tập mới.
+
+### 3.4 Cắt vùng chữ dự phòng và giữ nội dung chính
+
+Luồng chung: ảnh → DocAligner → nắn nếu góc hợp lệ → tìm vùng chữ chính nếu thiếu khung hoặc ảnh nắn không đạt kiểm tra → kiểm tra chất lượng → làm rõ ảnh → lưu kết quả.
+
+`content_scan.py` dùng hộp từ Tesseract làm bằng chứng, kết hợp các cụm nét chữ để chọn vùng có diện tích lớn nhất trong các vùng đủ hỗ trợ. Không dùng hộp bao tất cả từ trên toàn ảnh. Các vùng gần nhau được gom và thêm lề nhỏ; hai vùng lớn gần bằng nhau được cảnh báo. Đây là quy tắc hình học, chưa hiểu ngữ nghĩa trang người dùng muốn chọn.
+
+Trong vùng đã chọn, scanner thử tìm tứ giác giấy. Chỉ nắn thêm khi đạt kiểm tra hình học và giữ hộp từ/nét chữ; nếu không thì giữ crop đã chỉnh nghiêng. Ma trận được đưa về ảnh gốc để nắn một lần, hạn chế nội suy nhiều lần. Khung này vẫn ghi là ước lượng theo nội dung, không phải DocAligner tìm góc thành công. Phần ngoài ảnh được đệm trắng và cảnh báo, không phục hồi chữ bị thiếu.
+
+<!-- PAGEBREAK -->
+
+### 3.5 Kiểm tra chất lượng và làm rõ ảnh
+
+`appearance.py` kiểm tra ảnh trước tăng cường theo kích thước, vùng giấy sáng, lượng nét giống chữ và độ nét. Ảnh trắng, tối hoặc quá mờ có thể bị từ chối. Đây là bộ lọc theo quy tắc cho giấy sáng có chữ, chưa thay cho kiểm thử nhận nhầm trên ảnh không có tài liệu.
+
+Ảnh đạt được bù nền sáng trong Lab, tăng độ đậm nét chữ, làm sắc nhẹ và giữ màu mực. Cấu hình ở `configs/scan.json`; mức làm sắc hiện tại 0,45, sigma 0,7. Nét quá nhạt, đường kẻ và hình vẽ có thể bị ảnh hưởng, nên phải đối chiếu ảnh màu. Chưa xử lý cong trang hoặc tự xác định mọi trường hợp xoay ngược 90/180 độ theo nghĩa của chữ.
+
+Với `anh_viet.jpg`, DocAligner trả được khung để nắn trang. Với `anh_2.jpg`, điểm detector khoảng 0,0374, không có khung được chấp nhận; nhánh dự phòng chọn vùng chữ chính rồi ước lượng tứ giác và nắn lại. Quan sát cho thấy nền sáng hơn, chữ đậm hơn và vùng chính thẳng hơn so với trước.
+
+![Trước và sau nắn vùng chữ dự phòng](../artifacts/history/scan_report_20261118/comparison.jpg)
+
+**Hình 9. Ảnh viết tay có nhiều tờ giấy.** Trái: kết quả trước bổ sung nắn phối cảnh cho vùng chữ; phải: kết quả sau cải thiện. Đây là mốc ảnh đã lưu; cấu hình hiện tại đã chỉnh nhẹ độ sắc thêm sau mốc này.
+
+Ảnh gốc `anh_2.jpg` bị thiếu một phần trang ở mép ảnh. Kết quả còn cảnh báo khung ước lượng và đệm trắng ngoài ảnh; giấy phụ hoặc viền thừa vẫn có thể còn. Chưa thể nói đã loại sạch mọi phần thừa hoặc đạt tương đương CamScanner. Hai ảnh chưa có nhãn góc/TXT nên chưa có IoU hoặc CER/WER; chỉ dùng kiểm tra chức năng.
+
+Không thể phục hồi chữ nằm ngoài ảnh hoặc bị vật thể che. Nắn đúng khung cũng không tự làm chữ bị mờ thành nét thật. Cần xem ảnh màu cùng ảnh tăng cường trước khi đánh giá giữ dấu và nét mảnh.
+
+<!-- PAGEBREAK -->
+
+## 4 OCR và kế hoạch trước buổi báo cáo tiếp theo
+
+### 4.1 Tình hình OCR tiếng Anh
+
+OCR vẫn dùng Tesseract với `funsd_eng`; DocAligner chỉ tìm góc, không đọc chữ. Mốc FUNSD trước đây có CER 24,61% và WER 48,97% trên 50 trang test theo các vùng nhãn. Tập này đã được dùng trong phát triển nên chưa phải đánh giá độc lập cuối cùng.
+
+Ở một ảnh tiếng Anh `anh.jpg` có TXT chuẩn, lượt thử cũ đạt CER/WER 2,64%/5,80% khi dùng classic và 3,02%/4,35% khi dùng DocAligner. Hai chỉ số trái chiều trên một ảnh chưa đủ chọn phương pháp OCR tốt hơn. Các kết quả này có trước bộ tăng cường ảnh mới, chưa phản ánh chất lượng OCR hiện tại sau chỉnh scan.
+
+DBNet đã được thử cho vùng chữ dự phòng nhưng không chọn. Trên 30 trang FUNSD với 4.616 hộp từ, Tesseract giữ 4.595 hộp (99,55%), DBNet kết hợp gom cụm giữ 4.092 hộp (88,65%). Giữ đủ nghĩa là ít nhất 98% diện tích hộp nằm trong crop; crop thất bại tính 0. Kết quả này đánh giá giữ vùng chữ, không phải tỷ lệ đọc đúng chữ.
+
+### 4.2 Scanner riêng và khả năng nối OCR
+
+Lệnh scan riêng gọi `scan_document()` và trả ảnh cùng metadata. `pipeline.py` đã gọi chung hàm này rồi chuyển ảnh sang `recognize_image()`. Vì vậy có thể tiếp tục cải thiện OCR mà giữ scanner hiện có. Pipeline bật thêm kiểm tra nội dung `check_content=True`; scan riêng mặc định không bật nên một số ảnh khó có thể có crop khác nhau.
+
+Tesseract trong nhánh dự phòng chỉ lấy vị trí hộp từ; bước OCR cuối mới xuất văn bản. Mô hình tiếng Anh hiện tại chưa hoàn thiện cho chữ viết tay tiếng Việt hoặc công thức toán. Ảnh nhìn rõ hơn chưa chứng minh CER/WER tốt hơn.
+
+### 4.3 Việc cần làm tiếp
+
+Phần còn thiếu: đã thống kê theo nền, nhưng chưa có thống kê định lượng riêng cho che khuất, bóng đổ, mờ và nhiều giấy. Cần bổ sung nhãn điều kiện chụp và ảnh âm tính; so sánh ảnh màu, ảnh xám và ảnh tăng cường trên cùng TXT chuẩn để chọn cách làm rõ theo CER/WER. Đã chốt detector và chấm test cuối; giữ nguyên cấu hình sau khi xem điểm. Phần còn lại là kiểm chứng toàn luồng scan trên ảnh mới, không dùng test SmartDoc để chỉnh ngưỡng.
+
+| Công việc | Kết quả cần có |
+| --- | --- |
+| Bổ sung ảnh Anh/Việt và ảnh không có giấy | Danh sách ảnh độc lập, điều kiện chụp và quy tắc chọn trang chính |
+| Gán góc cho ảnh có tài liệu | Nhãn ngoài luồng dự đoán để đo IoU và tỷ lệ bỏ sót |
+| Kiểm tra giấy phụ, mất lề, nét nhạt | Cặp ảnh màu/tăng cường và ghi nhận lỗi theo từng ca |
+| So sánh đầu vào OCR trên cùng TXT chuẩn | CER/WER của ảnh màu sau nắn và ảnh tăng cường |
+| Chuẩn bị demo và trao đổi với giảng viên | Một ảnh qua scan, giải thích fallback và giới hạn hiện tại |
+
+Ưu tiên kiểm thử độc lập trước khi khẳng định scanner hoàn thiện. Chưa dùng nhãn test để chỉnh ngưỡng; chưa chạy lại toàn SmartDoc chỉ để bổ sung hình minh họa cho báo cáo.
+
+<!-- PAGEBREAK -->
+
+### 4.4 Demo và vị trí mã nguồn
+
+Chạy từ gốc dự án với venv đã kích hoạt. Scan riêng, không xuất văn bản OCR cuối:
 
 ```powershell
 python -X utf8 src/document_scanner/scanner/scan_image.py --image "data/raw/thu_detect/anh_2.jpg"
 ```
 
-Ảnh cuối nằm ở `data/processed/scan/image_anh_2_b016f626/scan.png`. Cùng thư mục có `scan_color.png` để xem trước tăng cường và `region.png` để kiểm tra vùng chọn. Metadata nằm ở `artifacts/scans/image_anh_2_b016f626/metadata.json`.
+Mở `data/processed/scan/image_anh_2_b016f626/scan.png`. Cùng thư mục có `scan_color.png` để đối chiếu trước tăng cường và `region.png` để xem vùng chọn trên ảnh gốc. Metadata ở `artifacts/scans/image_anh_2_b016f626/metadata.json`.
 
-Mặc định mỗi đường dẫn ảnh có một thư mục kết quả ổn định, chạy lại cập nhật các file do scanner quản lý. Các ghi chú riêng được giữ. Dùng `--new-run` khi chủ động muốn tạo lịch sử mới. Quy tắc này áp dụng cho lệnh scan một ảnh; pipeline OCR vẫn tạo thư mục theo từng lượt chạy.
+Lệnh scan một ảnh mặc định cập nhật thư mục riêng của ảnh, tránh kết quả lặp; ghi chú của người dùng được giữ. Chỉ thêm `--new-run` khi muốn lưu một mốc mới. Benchmark vẫn dùng tên lượt riêng, không ghi đè mốc cũ.
 
-Các kết quả scan thử trùng đã được dọn, giữ mốc trước/sau trong `artifacts/history/scan_report_20261118/`. Dữ liệu gốc, trọng số và hai lượt benchmark toàn bộ vẫn được giữ.
-
-### Nơi lưu kết quả để kiểm chứng
-
-| Nội dung | Đường dẫn trong dự án |
-| --- | --- |
-| Bảng so sánh chính | `docs/results/scanner_comparison.csv` |
-| Tập phát triển cố định | `docs/results/scanner_dev_manifest.csv` |
-| Detect toàn bộ bằng classic | `artifacts/scanner_dev/full_detection_v1/` |
-| Detect toàn bộ bằng DocAligner | `artifacts/scanner_dev/docaligner_t8_full/` |
-| Ảnh so sánh SmartDoc | `artifacts/scanner_dev/comparison/` |
-| Ảnh scan hiện tại | `data/processed/scan/image_<tên>_<hash>/` |
-
-Các lượt benchmark có `results.csv`, `summary.csv`, `run_info.json` và snapshot nguồn; chỉ kết luận từ lượt có `complete: true`. Ảnh, dữ liệu gốc, trọng số và artifacts lưu trên máy; GitHub giữ mã và số liệu tổng hợp. Hướng dẫn vận hành ở README, lịch việc tiếp theo ở kế hoạch 7 ngày.
-
-<!-- PAGEBREAK -->
-
-## Kết nối scanner với OCR và bước tiếp theo
-
-### Luồng hiện có
-
-Chạy scan riêng: ảnh chụp → `scan_document()` → ảnh scan và metadata.
-
-Chạy toàn pipeline: ảnh chụp → cùng `scan_document()` → `recognize_image()` → ảnh scan, văn bản và metadata.
-
-Scanner đã tách được trách nhiệm khỏi nhận dạng chữ. Sau này có thể cải thiện hoặc thay bộ OCR trong `ocr/` mà vẫn dùng ảnh đầu ra scanner. Pipeline hiện có kiểm tra nội dung bổ sung qua `check_content=True`; lệnh scan riêng mặc định không bật bước này, vì vậy hai cách chạy có thể chọn crop khác nhau trên một số ảnh khó.
-
-### Lệnh chạy cả scan và OCR
+Chạy nối scan và OCR tiếng Anh trên ảnh phù hợp:
 
 ```powershell
 python -X utf8 src/document_scanner/pipeline.py --image "data/raw/thu_ocr/anh.jpg"
 ```
 
-Kết quả ở `data/processed/pipeline/<run_id>/`: `scan.png`, `text.txt`, `metadata.json`; có thêm `evaluation.json` khi cung cấp `--reference`. Lệnh này dùng bộ OCR tiếng Anh hiện tại, không phải OCR tiếng Việt viết tay hoàn chỉnh.
+Đầu ra pipeline ở `data/processed/pipeline/<run_id>/`, gồm ảnh scan, `text.txt` và metadata. Với ảnh đã scan, dùng `--input-type scan` để bỏ qua scanner. Pipeline OCR vẫn tạo thư mục theo lượt chạy.
 
-### Chỉ OCR ảnh đã scan
+| Thành phần | Vị trí trong dự án |
+| --- | --- |
+| Canny/Otsu và chấm ứng viên | `src/document_scanner/scanner/classic.py` |
+| Heatmap và giải mã góc | `src/document_scanner/scanner/docaligner.py` |
+| Luồng scan dùng chung | `src/document_scanner/scanner/scan_image.py` |
+| Vùng chữ dự phòng | `src/document_scanner/scanner/content_scan.py` |
+| Kiểm tra và làm rõ ảnh | `scanner/appearance.py`, `configs/scan.json` |
+| Nắn phối cảnh | `src/document_scanner/scanner/geometry.py` |
+| Nối nhận dạng chữ | `src/document_scanner/pipeline.py`, `ocr/` |
 
-```powershell
-python -X utf8 src/document_scanner/pipeline.py --image "data/processed/scan/image_anh_2_b016f626/scan.png" --input-type scan
-```
+Các đường dẫn rút gọn `scanner/`, `ocr/` tính từ `src/document_scanner/`. Hai lượt detect gốc ở `artifacts/scanner_dev/full_detection_v1/` và `docaligner_t8_full/`; lượt chấm cuối ở `artifacts/scanner_dev/docaligner_final_20261119/`. Bảng tổng hợp ở `docs/results/scanner_comparison.csv`. Sáu ca minh họa có chỉ mục trong `artifacts/scanner_dev/comparison/index.csv`; các file `_scans.jpg` cho xem kết quả sau nắn. Chỉ kết luận từ lượt có `complete: true`.
 
-Lệnh trên bỏ qua scanner và dùng đúng ảnh scan đã chọn làm đầu vào nhận dạng. Có thể dùng để kiểm tra kết nối kỹ thuật; nội dung viết tay tiếng Việt và công thức trong ảnh này chưa phù hợp để kết luận chất lượng bộ OCR tiếng Anh.
-
-Trước khi chọn ảnh tăng cường làm đầu vào OCR mặc định lâu dài, cần so sánh cùng bộ TXT chuẩn giữa ảnh màu sau nắn và ảnh tăng cường. Chữ nhìn rõ hơn chưa đảm bảo CER/WER tốt hơn. Giai đoạn tiếp theo ưu tiên kiểm thử vùng cắt, sau đó đánh giá lại OCR tiếng Anh và mở rộng tiếng Việt.
-
-### Nguồn mô hình và kết luận
-
-Nguồn: [DocsaidLab DocAligner](https://github.com/DocsaidLab/DocAligner); tiền/hậu xử lý tham khảo `docaligner/heatmap_reg/infer.py` của upstream. Tên mô hình là heatmap FastViT-T8, không phải mô hình DBNet tìm chữ và không phải mô hình OCR.
-
-DocAligner cải thiện rõ kết quả định vị khung trang trên SmartDoc và đã được chọn làm scanner chính để tiếp tục kiểm thử. Canny/Otsu được giữ để thể hiện quá trình phát triển và làm mốc so sánh. Bước tiếp theo ưu tiên kiểm thử dữ liệu mới và ảnh không có tài liệu trước khi khẳng định khả năng sử dụng tổng quát.
+Nguồn mô hình: [DocsaidLab DocAligner](https://github.com/DocsaidLab/DocAligner), adapter tham khảo `docaligner/heatmap_reg/infer.py`. Ảnh và trọng số giữ cục bộ; mã nguồn và kết quả tổng hợp được quản lý bằng Git. Báo cáo này cập nhật nội dung hiện có, không ghi các kế hoạch tuần tới thành kết quả đã hoàn thành.

@@ -1,6 +1,8 @@
 # Mục lục tài liệu
 
-**Cập nhật 19/11/2026:** báo cáo MD/Word đã bổ sung scan riêng, chọn vùng chữ chính khi thiếu góc, nắn phối cảnh dự phòng, kiểm tra chất lượng và làm rõ ảnh. Pipeline OCR đã gọi chung scanner. Số liệu SmartDoc giữ nguyên; hai ảnh mới chỉ là thử chức năng, chưa hoàn tất đánh giá độc lập hoặc đo lại OCR.
+**Cập nhật 19/11/2026:** báo cáo MD/Word đã bổ sung scan riêng, chọn vùng chữ chính khi thiếu góc, nắn phối cảnh dự phòng, kiểm tra chất lượng và làm rõ ảnh. Pipeline OCR đã gọi chung scanner. Đã chấm test cuối DocAligner: 4.201/4.202 đạt IoU ≥ 0,9, mean IoU 0,9889; hai ảnh mới chỉ là thử chức năng, chưa hoàn tất đánh giá độc lập hoặc đo lại OCR.
+
+Báo cáo đã sắp theo khung báo cáo tuần cũ, có 6 ca minh họa Canny/Otsu đối chiếu DocAligner đặt ngay sau phân tích từng lỗi; thêm 2 ví dụ khung và heatmap trong mục DocAligner; hình trước/sau nằm trong mục làm rõ ảnh, không có phần minh họa riêng. Bản hiện tại dùng chuẩn bị buổi báo cáo tuần tới, chỉ ghi kết quả đã có đến ngày 19/11/2026.
 
 Chỉ cần mở:
 

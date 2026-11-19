@@ -13,12 +13,24 @@
 - Ảnh so sánh 6 ca khó: `artifacts/scanner_dev/comparison/all_corners.jpg` và `all_scans.jpg`. Trái: Canny/Otsu cải tiến; phải: DocAligner. Xanh lá: nhãn; đỏ: dự đoán.
 - Ảnh scan minh họa: `data/processed/scan_examples/`; tra ảnh gốc trong `index.csv`.
 
-| Phương pháp | Train đạt IoU ≥ 0,9 | Validation đạt IoU ≥ 0,9 |
-| --- | ---: | ---: |
-| Classic — Canny/Otsu cải tiến | 13.366/17.495 (76,40%) | 2.424/3.192 (75,94%) |
-| DocAligner FastViT-T8 đã huấn luyện sẵn | **17.493/17.495 (99,99%)** | **3.192/3.192 (100%)** |
+| Phương pháp | Train đạt IoU ≥ 0,9 | Validation đạt IoU ≥ 0,9 | Test đạt IoU ≥ 0,9 |
+| --- | ---: | ---: | ---: |
+| Classic — Canny/Otsu cải tiến | 13.366/17.495 (76,40%) | 2.424/3.192 (75,94%) | Chưa chấm |
+| DocAligner FastViT-T8 đã huấn luyện sẵn | **17.493/17.495 (99,99%)** | **3.192/3.192 (100%)** | **4.201/4.202 (99,98%)** |
 
-Cả hai đã chạy detect đủ **24.889 ảnh**. Test chỉ lưu dự đoán, chưa chấm IoU. Chưa xác minh dữ liệu huấn luyện sẵn có trùng SmartDoc; các số trên không phải bằng chứng tổng quát hóa độc lập. Chưa đánh giá đầy đủ ảnh không có giấy hoặc tiếng Việt.
+Cả hai đã chạy detect đủ **24.889 ảnh**. Đã chốt DocAligner và chấm test cuối ngày 19/11/2026 từ dự đoán đã lưu; IoU trung bình test 0,9889. Classic test chưa chấm. Đây là detector thuần, không đánh giá toàn bộ cắt dự phòng/làm rõ ảnh/OCR. Chưa xác minh dữ liệu huấn luyện sẵn có trùng SmartDoc; các số trên không phải bằng chứng tổng quát hóa độc lập. Chưa đánh giá đầy đủ ảnh không có giấy hoặc tiếng Việt.
+
+### Đánh giá cuối detector đã chốt
+
+Kết quả: `artifacts/scanner_dev/docaligner_final_20261119/`, gồm dự đoán đã chấm, bảng tổng hợp và nguồn/cấu hình đóng băng. Lượt detect gốc giữ nguyên. Không điều chỉnh cấu hình theo điểm test; DocAligner là mô hình có sẵn, không huấn luyện trên tập train của dự án.
+
+Chỉ khi cần tái hiện phép đánh giá cuối đã được cho phép, dùng tên lượt mới:
+
+```powershell
+python -X utf8 src/document_scanner/scanner/final_evaluation.py --run-name docaligner_final_recheck --final-test-evaluation
+```
+
+Lệnh chấm góc đã lưu, xác minh hash manifest/trọng số, chia tập theo tài liệu, tính cả ảnh thất bại trong mẫu số; không chạy lại mạng và không ghi đè benchmark cũ. Tập test đã được mở cho đánh giá cuối này, không còn là tập chưa xem cho các cải tiến sau.
 
 ## 2. Cài đặt
 

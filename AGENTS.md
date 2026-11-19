@@ -41,6 +41,7 @@ Các đường dẫn `scanner/` trong bảng tính từ `src/document_scanner/`.
 - Nhãn chỉ dùng đánh giá ngoại tuyến, không truyền vào detector để chọn khung.
 - Giữ chia tập theo tài liệu gốc. Không trộn các frame cùng tài liệu vào nhiều tập để làm đẹp điểm.
 - Test chỉ lưu dự đoán; không chấm hoặc dùng kết quả test để chọn ngưỡng khi chưa có yêu cầu rõ ràng cho giai đoạn đánh giá cuối.
+- Ngày 19/11/2026 người dùng đã chốt DocAligner và yêu cầu chấm test cuối. Lượt `artifacts/scanner_dev/docaligner_final_20261119/` chấm góc đã lưu, test đạt 4.201/4.202 (99,98%), mean IoU 0,988917. Không dùng điểm test này để chỉnh ngưỡng hoặc coi test vẫn chưa được xem. Classic test chưa chấm; fallback/làm rõ ảnh chưa được đánh giá toàn tập.
 - So sánh trên cùng danh sách ảnh. Lưu tên phương pháp, cấu hình, hash mô hình/nguồn và trạng thái hoàn thành.
 - Không bỏ ảnh thất bại khỏi mẫu số. IoU của ảnh không có khung tính 0 trong đánh giá train/val.
 - Phân biệt tỷ lệ trả khung, tỷ lệ IoU ≥ 0,9, nắn thành công và chất lượng OCR. Không gọi detect 100% là chính xác 100%.
