@@ -2,7 +2,6 @@ from pathlib import Path
 from datetime import datetime
 import argparse
 import json
-import hashlib
 
 import cv2
 import numpy as np
@@ -11,7 +10,6 @@ import numpy as np
 from scanner.scan_image import scan_document
 from ocr.metrics import edit_distance, normalize_text
 from ocr.recognize import recognize_image
-from ocr.prepare_image import prepare_ocr_image
 
 
 # Từ pipeline.py đi lên thư mục gốc của dự án.
@@ -43,7 +41,7 @@ def choose_ocr_model(language, tessdata_dir, choice, model_dir):
 
 
 def process_image(image_path, language, input_type="photo", psm=None, tessdata_dir=None, reference_path=None,
-                  scanner_method=None, ocr_prepare=True):
+                  scanner_method=None):
     # Mô hình tiếng Anh dùng PSM 11 nếu không yêu cầu cấu hình khác.
     if psm is None and language == "funsd_eng":
         psm = ENGLISH_PSM
@@ -117,27 +115,11 @@ def process_image(image_path, language, input_type="photo", psm=None, tessdata_d
 
     print("Đã lưu ảnh scan:", scan_path)
 
-    # 5. Chuẩn bị riêng cho OCR; scan.png vẫn là ảnh scanner đã tạo.
-    ocr_path = scan_path
-    preparation = {"applied": False, "method": "disabled_or_non_english", "T_scan_to_ocr": np.eye(3).tolist()}
-    if ocr_prepare and language in ("eng", "funsd_eng"):
-        ocr_image, preparation = prepare_ocr_image(scanned)
-        if preparation["applied"]:
-            ocr_path = output_folder / "ocr_input.png"
-            if not cv2.imwrite(str(ocr_path), ocr_image):
-                raise OSError("Không lưu được ảnh đầu vào OCR: " + str(ocr_path))
-    recognition = recognize_image(ocr_path, language, psm=psm, tessdata_dir=tessdata_dir,
-                                  return_details=True)
-    # Giữ tương thích với các lời gọi cũ chỉ trả chuỗi văn bản.
-    ocr_details = recognition if isinstance(recognition, dict) else None
-    predicted_text = recognition["text"] if ocr_details is not None else recognition
-    if ocr_details is not None:
-        ocr_details["input_image"] = ocr_path.name
-        ocr_details["preparation"] = preparation
-        (output_folder / "ocr.json").write_text(
-            json.dumps(ocr_details, ensure_ascii=False, indent=2), encoding="utf-8")
-        for warning in ocr_details["warnings"]:
-            print("Cảnh báo OCR:", warning)
+    # 5. Nhận dạng chữ từ ảnh vừa scan.
+    if tessdata_dir is None:
+        predicted_text = recognize_image(scan_path, language, psm=psm)
+    else:
+        predicted_text = recognize_image(scan_path, language, psm=psm, tessdata_dir=tessdata_dir)
 
     # 6. Lưu văn bản OCR ra file TXT.
     text_path.write_text(
@@ -148,7 +130,6 @@ def process_image(image_path, language, input_type="photo", psm=None, tessdata_d
     # Lưu nguồn và cấu hình để có thể đối chiếu kết quả sau này.
     metadata = {
         "source_image": str(image_path.resolve()),
-        "source_sha256": hashlib.sha256(image_bytes).hexdigest(),
         "input_type": input_type,
         "language": language,
         "psm": psm,
@@ -168,28 +149,7 @@ def process_image(image_path, language, input_type="photo", psm=None, tessdata_d
         "corners_original": corners,
         "H_source_to_warp": matrix_h,
         "T_source_to_output": matrix_t,
-        "ocr": None if ocr_details is None else {
-            key: ocr_details[key] for key in ("word_count", "mean_word_confidence",
-                                             "low_confidence_word_count", "warnings",
-                                             "confidence_note", "coordinate_space", "reading_order")},
-        "ocr_model_sha256": {},
-        "ocr_preparation": preparation,
-        "ocr_input_image": ocr_path.name,
-        "T_source_to_ocr": (np.array(preparation["T_scan_to_ocr"]) @
-                             (np.eye(3) if matrix_t is None else np.array(matrix_t))).tolist(),
-        "source_sha256_code": {
-            str(path.relative_to(PROJECT_ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
-            for path in (Path(__file__), Path(__file__).parent / "ocr/recognize.py",
-                         Path(__file__).parent / "ocr/prepare_image.py")
-        },
     }
-    tessdata = tessdata_dir or Path(r"C:\Program Files\Tesseract-OCR\tessdata")
-    for name in language.split("+"):
-        model_path = tessdata / (name + ".traineddata")
-        if model_path.is_file():
-            metadata["ocr_model_sha256"][name] = hashlib.sha256(model_path.read_bytes()).hexdigest()
-    if ocr_details is not None and ocr_details["warnings"]:
-        metadata["review_recommended"] = True
     (output_folder / "metadata.json").write_text(
         json.dumps(metadata, ensure_ascii=False, indent=2),
         encoding="utf-8",
@@ -250,7 +210,7 @@ def main():
     parser.add_argument(
         "--psm",
         type=int,
-        choices=[1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+        choices=range(14),
         help="Chế độ bố cục của Tesseract; mô hình FUNSD mặc định dùng PSM 11.",
     )
 
@@ -270,8 +230,6 @@ def main():
     )
     parser.add_argument("--scanner-method", choices=["docaligner", "classic"],
                         help="Mặc định DocAligner theo cấu hình; classic dùng Canny/Otsu để đối chứng.")
-    parser.add_argument("--no-ocr-prepare", action="store_true",
-                        help="Bỏ phóng ảnh nhỏ/thêm viền OCR để đối chứng, không thay scanner.")
 
     args = parser.parse_args()
 
@@ -293,7 +251,6 @@ def main():
         tessdata_dir=tessdata_dir,
         reference_path=Path(args.reference) if args.reference else None,
         scanner_method=args.scanner_method,
-        ocr_prepare=not args.no_ocr_prepare,
     )
 
     print()

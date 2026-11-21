@@ -32,18 +32,6 @@ python -X utf8 src/document_scanner/scanner/final_evaluation.py --run-name docal
 
 Lệnh chấm góc đã lưu, xác minh hash manifest/trọng số, chia tập theo tài liệu, tính cả ảnh thất bại trong mẫu số; không chạy lại mạng và không ghi đè benchmark cũ. Tập test đã được mở cho đánh giá cuối này, không còn là tập chưa xem cho các cải tiến sau.
 
-### Kiểm định bổ sung toàn luồng scan
-
-Mục 3.6 của báo cáo giữ bảng tiêu chí và kết quả audit. Lượt `artifacts/scanner_dev/scanner_quality_20261119/` có 23 mẫu: 14 ảnh có tài liệu, 6 ROI không có tờ giấy chính từ một ảnh train và 3 ca tổng hợp. Phát hiện giữ nội dung chưa đạt trên 8 trang FUNSD: 864/1.583 hộp từ được giữ đủ. Hai ảnh tiếng Anh cũ có CER/WER tốt hơn sau tăng cường. Không dùng các kết quả này để chỉnh detector đã chốt; không coi mẫu nhỏ là đánh giá độc lập.
-
-Để tái hiện audit nhỏ, dùng tên mới:
-
-```powershell
-python -X utf8 src/document_scanner/scanner/quality_audit.py --run-name scanner_quality_recheck
-```
-
-Lệnh không quét lại 24.889 ảnh; tính sai số góc từ dự đoán đã lưu và chạy scan/OCR trên các mẫu nhỏ cố định. Nhãn dùng chấm sau scan, không tham gia chọn crop. Tập FUNSD đã scan sẵn được dùng kiểm tra giữ trang khi đưa qua scanner như ảnh đầu vào chưa rõ loại; sản phẩm vẫn có `--input-type scan` để bỏ scanner khi người dùng biết ảnh đã scan.
-
 ## 2. Cài đặt
 
 Python 3.12 64-bit, chạy PowerShell từ thư mục gốc:
@@ -96,15 +84,7 @@ Chạy cùng ảnh bằng Canny/Otsu để so sánh:
 python -X utf8 src/document_scanner/pipeline.py --image "data/raw/thu_ocr/anh.jpg" --scanner-method classic
 ```
 
-Đầu ra ở `data/processed/pipeline/<run_id>/`: `scan.png`, `text.txt`, `metadata.json`; thêm `evaluation.json` khi có `--reference "đường/dẫn/nhãn.txt"`. Với ảnh đã scan sẵn, dùng `--input-type scan` để bỏ qua tìm góc. OCR tiếng Anh mặc định vẫn là funsd_eng/PSM 11. Đã bổ sung chuẩn bị riêng ảnh OCR nhỏ, đầu ra ocr.json và cảnh báo từ điểm thấp. scan.png giữ nguyên; ocr_input.png chỉ thêm khi cần phóng ảnh. 55 kiểm thử đạt.
-
-### OCR tiếng Anh hiện tại
-
-Giữ một mô hình mặc định `funsd_eng`, không cần chọn mô hình. Trên 30 trang validation FUNSD, chuẩn bị ảnh nhỏ giúp CER 21,04% → 19,41%, WER 48,01% → 42,29% (chấm theo vùng nhãn sau OCR toàn trang, chưa đo thứ tự đọc). PSM 11 tốt hơn PSM 3/4 trên tập này; hai ảnh chụp cũ đã chạy toàn pipeline đạt CER/WER 0%/0% và 1,06%/7,69%. Đây là kết quả phát triển, không phải test độc lập mới.
-
-Mở `text.txt` để xem chữ; `ocr.json` để kiểm tra từ, dòng và tọa độ trên ảnh OCR. Điểm tin cậy Tesseract không phải độ chính xác. Dùng `--input-type scan` cho FUNSD/ảnh đã scan để bỏ bước cắt trang. OCR không sửa lỗi scanner làm mất chữ.
-
-Lệnh đối chứng chuẩn bị ảnh: thêm `--no-ocr-prepare`. Các lượt so sánh ở `artifacts/ocr/english_layout_20261119/`, `english_resolution_20261119/`; xác nhận cấu hình cuối và demo thật ở `english_ready_20261119/`. Xem [hướng dẫn OCR](docs/guides/thu_ocr_mot_anh.md).
+Đầu ra ở `data/processed/pipeline/<run_id>/`: `scan.png`, `text.txt`, `metadata.json`; thêm `evaluation.json` khi có `--reference "đường/dẫn/nhãn.txt"`. Với ảnh đã scan sẵn, dùng `--input-type scan` để bỏ qua tìm góc. Mô hình OCR mặc định vẫn là FUNSD tiếng Anh; không thay OCR trong lần cập nhật scanner này.
 
 ## 4. Kiểm tra detect theo lô
 

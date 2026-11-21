@@ -13,11 +13,9 @@
 - Scanner mặc định là **DocAligner FastViT-T8 đã huấn luyện sẵn**, chạy ONNX bằng OpenCV.
 - **Giữ Canny/Otsu trong `scanner/classic.py`** để đối chứng và báo cáo. Không bỏ nhánh này khi cải thiện mô hình chính.
 - OCR tiếng Anh vẫn dùng Tesseract với `funsd_eng`; cắt vùng chữ dự phòng vẫn dùng Tesseract.
-- OCR cập nhật 19/11/2026 giữ funsd_eng/PSM 11 sau so sánh trên 30 trang validation. `ocr/prepare_image.py` chỉ phóng ảnh nhỏ tối đa 2x, nhắm cạnh dài 1800 px, thêm viền 12 px khi phóng; ảnh lớn giữ nguyên. Pipeline xuất `ocr.json`, thêm `ocr_input.png` khi cần. Không dùng nhãn để chọn đầu vào/PSM từng ảnh; không coi confidence là độ chính xác hoặc tự sửa nội dung. Scanner tạm giữ nguyên; OCR không phục hồi crop mất chữ.
 - DBNet đã thử và không được chọn. Không khôi phục vào luồng mặc định nếu chưa có phép đo mới chứng minh giữ nội dung tốt hơn.
 - DocAligner chưa được tự huấn luyện/tinh chỉnh trong dự án. Chưa xác minh dữ liệu huấn luyện sẵn có trùng SmartDoc.
 - Việc tiếp theo là kiểm thử ảnh mới, tiếng Việt và ảnh không có tài liệu. Không coi phần này đã hoàn thành.
-- Audit 19/11/2026 ở `artifacts/scanner_dev/scanner_quality_20261119/` phát hiện crop mất khối chữ: 864/1.583 hộp từ được giữ đủ trên 8 trang FUNSD. Không coi ảnh accepted là giữ đủ nội dung. OCR tăng cường tốt hơn trên hai ảnh cũ; 6 ROI âm bị từ chối nhưng chưa phải tập độc lập. Sai số góc báo cáo dùng ghép chu kỳ trong `additional_metrics.json`, không dùng khoảng cách theo chỉ số đỉnh thô của summary gốc.
 
 ## Phân chia trách nhiệm mã nguồn
 

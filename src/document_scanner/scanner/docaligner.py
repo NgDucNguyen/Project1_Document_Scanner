@@ -1,4 +1,9 @@
+"""DocsaidLab DocAligner FastViT-T8: d? ?o?n b?n g?c b?ng heatmap.
 
+Ti?n/h?u x? l? tham kh?o m? upstream (Apache-2.0):
+https://github.com/DocsaidLab/DocAligner/blob/main/docaligner/heatmap_reg/infer.py
+Tr? uncertain v? ch?a ki?m ch?ng kh? n?ng t? ch?i ?nh kh?ng c? t?i li?u.
+"""
 from pathlib import Path
 import threading
 
