@@ -31,6 +31,27 @@ class OcrPipelineTests(unittest.TestCase):
         quality.start()
         self.addCleanup(quality.stop)
 
+    def test_detailed_ocr_uses_separate_image_and_preserves_coordinate_transform(self):
+        details = {"text": "Hello", "words": [], "lines": [], "word_count": 1,
+                   "mean_word_confidence": 40.0, "low_confidence_word_count": 1,
+                   "warnings": ["ocr_low_confidence_words_review"],
+                   "confidence_note": "not accuracy", "coordinate_space": "OCR input",
+                   "reading_order": "Tesseract"}
+        with patch.object(pipeline, "OUTPUT_ROOT", self.root / "output"), \
+                patch.object(scan_image, "detect_document") as detector, \
+                patch.object(pipeline, "recognize_image", return_value=details):
+            pipeline.process_image(self.image_path, "funsd_eng", input_type="scan")
+        detector.assert_not_called()
+        output = next((self.root / "output").iterdir())
+        scan = cv2.imread(str(output / "scan.png"))
+        np.testing.assert_array_equal(scan, self.image)
+        self.assertTrue((output / "ocr_input.png").is_file())
+        ocr = json.loads((output / "ocr.json").read_text(encoding="utf-8"))
+        metadata = json.loads((output / "metadata.json").read_text(encoding="utf-8"))
+        self.assertEqual(ocr["input_image"], "ocr_input.png")
+        self.assertTrue(metadata["review_recommended"])
+        np.testing.assert_allclose(np.array(metadata["T_source_to_ocr"]) @ [0, 0, 1], [12, 12, 1])
+
     def test_scanned_input_skips_detector_and_records_configuration(self):
         with patch.object(pipeline, "OUTPUT_ROOT", self.root / "output"), \
                 patch.object(scan_image, "detect_document") as detect, \

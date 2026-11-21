@@ -183,13 +183,54 @@ Không thể phục hồi chữ nằm ngoài ảnh hoặc bị vật thể che. 
 
 <!-- PAGEBREAK -->
 
+### 3.6 Bảng tiêu chí đánh giá scanner
+
+Đã kiểm tra bổ sung ngày 19/11/2026 với cấu hình đã chốt, không điều chỉnh detector hoặc bộ làm rõ ảnh theo kết quả. Các tiêu chí dưới đây là quy ước đánh giá của dự án, không phải chứng nhận theo tiêu chuẩn công nghiệp.
+
+| Tiêu chí và phép đo | Kết quả đã kiểm tra | Đánh giá và phạm vi |
+| --- | --- | --- |
+| Đúng khung trang bằng IoU ≥ 0,9 | Test SmartDoc đạt 4.201/4.202 ảnh (99,98%); mean IoU 0,9889 | Đạt trên SmartDoc; chưa xác minh trùng dữ liệu huấn luyện sẵn |
+| Sai số vị trí bốn góc | Test: trung bình 2,38 px; trung vị sai số chuẩn hóa 0,098%; P95 0,190% đường chéo ảnh | Đã đo 4.202 ảnh; đối chiếu chu kỳ đỉnh, không đánh giá hướng đọc |
+| Giữ nội dung sau cắt/nắn | 8 trang FUNSD: giữ đủ 864/1.583 hộp từ (54,58%); đủ nghĩa là ≥98% diện tích hộp nằm trong ảnh đầu ra | Chưa đạt mục tiêu giữ đầy đủ trang; nhánh dự phòng có thể cắt mất các khối chữ khác |
+| Hình học và hướng ảnh | 24.889 khung qua bộ kiểm tra hình học; kiểm thử màu bốn góc, chống lật gương, ma trận xoay và giảm nghiêng đều đạt | Đã kiểm tra hình học và mẫu tổng hợp; chưa đo hướng đọc, cong trang và dấu tiếng Việt trên tập thực tế |
+| Từ chối ảnh không phù hợp | 6/6 vùng ảnh không có tờ giấy chính bị từ chối; thêm 2/2 ảnh trắng/tối và 1/1 ảnh mờ tổng hợp bị từ chối | Mẫu nhỏ; 6 vùng âm cùng lấy từ một ảnh train, chưa phải tỷ lệ tổng quát |
+| Làm rõ ảnh trước OCR | Hai ảnh tiếng Anh có TXT: ảnh tăng cường CER 0,57%, WER 4,08%; ảnh màu CER 2,76%, WER 7,14% | Có lợi trên hai ảnh cũ; chưa đủ kết luận cho tài liệu mới hoặc tiếng Việt |
+| Tốc độ và độ ổn định | 14 ảnh có tài liệu: trung vị 1,095 giây, P95 3,004 giây; toàn lượt 23 mẫu không lỗi xử lý ngoài dự kiến; 51 kiểm thử đạt | Thời gian scan đã làm nóng, 1 luồng OpenCV; không gồm đọc/ghi file hoặc OCR cuối; chưa đo bộ nhớ |
+
+**Kết luận:** detector bốn góc có kết quả tốt trên SmartDoc. Tuy nhiên, kiểm tra mới phát hiện lỗi giữ nội dung trên trang nhiều khối: ảnh được chấp nhận chất lượng chưa đồng nghĩa scan toàn trang thành công. Chưa chốt toàn bộ scanner là hoàn thiện; cần sửa cách giữ các khối chữ cùng trang trước khi đánh giá lại trên tập độc lập. Lỗi này không làm thay đổi điểm detector SmartDoc đã chốt.
+
+<!-- PAGEBREAK -->
+
+### 3.6.1 Cách kiểm tra và bằng chứng bổ sung
+
+**Sai số góc:** tính khoảng cách Euclid tại bốn đỉnh rồi lấy trung bình mỗi ảnh, chia đường chéo ảnh khi chuẩn hóa. Thử bốn phép dịch chu kỳ đỉnh, giữ chiều đi quanh tứ giác, để không phạt hai khung trùng nhau chỉ vì bắt đầu từ đỉnh khác nhau. Train/validation/test có sai số trung bình lần lượt 2,38/2,34/2,38 px. P95 là phân vị 95 của sai số trung bình mỗi ảnh, không phải sai số lớn nhất. Cách đo này không kiểm tra trang có đúng hướng đọc hay không.
+
+**Giữ chữ:** chọn trước 8 trang FUNSD theo thứ tự tên file; chạy scanner không dùng nhãn, sau đó chiếu hộp từ nhãn qua ma trận T để đo phần nằm trong khung đầu ra. Ảnh bị từ chối tính giữ 0 hộp. Tất cả 8 ảnh được chấp nhận nhưng chỉ giữ đủ 54,58% hộp từ. Ví dụ 82200067_0069 chỉ giữ 27/167 hộp: vùng dự phòng chọn một khối ở giữa, mất tiêu đề, bảng bên dưới và chữ ở vùng khác. Đây là phép đo phạm vi crop trước làm rõ, chưa đo đủ nét mực sau tăng cường.
+
+Ảnh đối chiếu lỗi: `artifacts/scanner_dev/scanner_quality_20261119/samples/content_loss_example.jpg`. Khung đỏ là vùng thực sự được cắt, khung xanh là hộp từ nhãn; nhãn chỉ dùng vẽ/chấm sau dự đoán. FUNSD là tài liệu đã scan nhiều vùng, khác phân bố ảnh chụp SmartDoc; kết quả này kiểm tra việc giữ trang khi đầu vào chưa được khai báo là scan sẵn.
+
+**Từ chối:** 6 vùng âm gồm bìa sách, cốc, dây và mặt bàn, đều lấy từ một frame train SmartDoc, không chứa tờ giấy chính. Tỷ lệ nhận nhầm quan sát là 0/6; không suy rộng thành scanner từ chối đúng 100%. Hai ảnh hằng trắng/tối và một ảnh chữ bị làm mờ là kiểm tra tổng hợp riêng. 14/14 ảnh có tài liệu được chấp nhận, nhưng kết quả giữ chữ phía trên cho thấy không thể dùng tỷ lệ chấp nhận để thay cho chất lượng scan.
+
+**OCR trước và sau tăng cường:** dùng anh.jpg và anh_test_02.jpg với hai TXT hiện có; cùng crop, mô hình funsd_eng, PSM 11. Chỉ chuẩn hóa Unicode NFC và khoảng trắng; giữ hoa/thường và dấu câu. Cộng số lỗi của hai ảnh rồi chia tổng ký tự/từ nhãn, không lấy trung bình phần trăm đơn giản.
+
+| Đầu vào OCR trên cùng crop | CER | WER |
+| --- | ---: | ---: |
+| Ảnh màu sau nắn | 2,76% | 7,14% |
+| Ảnh xám | 3,85% | 10,88% |
+| Ảnh tăng cường hiện tại | 0,57% | 4,08% |
+
+Hai ảnh là mẫu phát triển đã có, không phải test độc lập mới. Chưa chọn lại tham số theo kết quả. Lượt audit và hash nguồn/cấu hình ở `artifacts/scanner_dev/scanner_quality_20261119/`: `results.json` giữ từng mẫu, `summary.json` giữ kết quả nhóm, `additional_metrics.json` giữ sai số góc đã ghép chu kỳ và kết quả kiểm thử. Trường corner_error trong summary gốc là sai số theo chỉ số đỉnh thô; dùng số đã ghép chu kỳ trong additional_metrics khi báo cáo.
+
+
+<!-- PAGEBREAK -->
+
 ## 4 OCR và kế hoạch trước buổi báo cáo tiếp theo
 
 ### 4.1 Tình hình OCR tiếng Anh
 
-OCR vẫn dùng Tesseract với `funsd_eng`; DocAligner chỉ tìm góc, không đọc chữ. Mốc FUNSD trước đây có CER 24,61% và WER 48,97% trên 50 trang test theo các vùng nhãn. Tập này đã được dùng trong phát triển nên chưa phải đánh giá độc lập cuối cùng.
+Cập nhật OCR tiếng Anh ngày 19/11/2026: giữ Tesseract/funsd_eng và PSM 11 sau so sánh PSM 3, 4, 11 trên cùng 30 trang validation FUNSD. Chuẩn bị riêng ảnh OCR: ảnh nhỏ được phóng tối đa 2 lần, nhắm cạnh dài 1.800 px và thêm viền trắng 12 px; ảnh đủ lớn giữ nguyên. CER validation giảm 21,04% → 19,41%, WER giảm 48,01% → 42,29%. Đây là OCR toàn trang chấm theo vùng nhãn sau nhận dạng; không đo thứ tự đọc toàn trang, từ ngoài vùng nhãn đếm riêng. Mốc 50 trang test lịch sử đã dùng trong phát triển, không dùng để chọn lần chỉnh này.
 
-Ở một ảnh tiếng Anh `anh.jpg` có TXT chuẩn, lượt thử cũ đạt CER/WER 2,64%/5,80% khi dùng classic và 3,02%/4,35% khi dùng DocAligner. Hai chỉ số trái chiều trên một ảnh chưa đủ chọn phương pháp OCR tốt hơn. Các kết quả này có trước bộ tăng cường ảnh mới, chưa phản ánh chất lượng OCR hiện tại sau chỉnh scan.
+Đã chạy thật luồng hiện tại: anh.jpg đạt CER/WER 0%/0%; anh_test_02.jpg đạt 1,06%/7,69%. Hai ảnh có TXT đều là mẫu cũ, không coi là kết quả tổng quát. Đầu ra thêm ocr.json chứa từ, dòng, tọa độ và điểm tin cậy để xem lỗi; không tự sửa từ hoặc dấu câu. Ảnh OCR phóng riêng được lưu ocr_input.png khi cần; scan.png giữ nguyên. 55 kiểm thử đạt; scanner không đổi.
 
 DBNet đã được thử cho vùng chữ dự phòng nhưng không chọn. Trên 30 trang FUNSD với 4.616 hộp từ, Tesseract giữ 4.595 hộp (99,55%), DBNet kết hợp gom cụm giữ 4.092 hộp (88,65%). Giữ đủ nghĩa là ít nhất 98% diện tích hộp nằm trong crop; crop thất bại tính 0. Kết quả này đánh giá giữ vùng chữ, không phải tỷ lệ đọc đúng chữ.
 
@@ -197,18 +238,18 @@ DBNet đã được thử cho vùng chữ dự phòng nhưng không chọn. Trê
 
 Lệnh scan riêng gọi `scan_document()` và trả ảnh cùng metadata. `pipeline.py` đã gọi chung hàm này rồi chuyển ảnh sang `recognize_image()`. Vì vậy có thể tiếp tục cải thiện OCR mà giữ scanner hiện có. Pipeline bật thêm kiểm tra nội dung `check_content=True`; scan riêng mặc định không bật nên một số ảnh khó có thể có crop khác nhau.
 
-Tesseract trong nhánh dự phòng chỉ lấy vị trí hộp từ; bước OCR cuối mới xuất văn bản. Mô hình tiếng Anh hiện tại chưa hoàn thiện cho chữ viết tay tiếng Việt hoặc công thức toán. Ảnh nhìn rõ hơn chưa chứng minh CER/WER tốt hơn.
+Tesseract trong nhánh dự phòng chỉ lấy vị trí hộp từ; bước OCR cuối mới xuất văn bản. Mô hình tiếng Anh hiện tại chưa hoàn thiện cho chữ viết tay tiếng Việt hoặc công thức toán. Kết quả OCR hiện tại và giới hạn được ghi ở mục 4.1; chưa mở rộng sang tiếng Việt hoặc tái tạo cấu trúc bảng. Với FUNSD/ảnh đã scan sẵn phải dùng --input-type scan để không chạy lại cắt trang.
 
 ### 4.3 Việc cần làm tiếp
 
-Phần còn thiếu: đã thống kê theo nền, nhưng chưa có thống kê định lượng riêng cho che khuất, bóng đổ, mờ và nhiều giấy. Cần bổ sung nhãn điều kiện chụp và ảnh âm tính; so sánh ảnh màu, ảnh xám và ảnh tăng cường trên cùng TXT chuẩn để chọn cách làm rõ theo CER/WER. Đã chốt detector và chấm test cuối; giữ nguyên cấu hình sau khi xem điểm. Phần còn lại là kiểm chứng toàn luồng scan trên ảnh mới, không dùng test SmartDoc để chỉnh ngưỡng.
+Phần còn thiếu: đã thống kê theo nền, nhưng chưa có thống kê định lượng riêng cho che khuất, bóng đổ, mờ và nhiều giấy. Đã thử 6 vùng âm từ một ảnh và đo OCR trên hai ảnh cũ; cần mở rộng tập độc lập. Ưu tiên khắc phục lỗi crop bỏ các khối chữ trên FUNSD, sau đó kiểm tra lại giữ nội dung và CER/WER. Đã chốt detector và chấm test cuối; giữ nguyên cấu hình sau khi xem điểm. Phần còn lại là kiểm chứng toàn luồng scan trên ảnh mới, không dùng test SmartDoc để chỉnh ngưỡng.
 
 | Công việc | Kết quả cần có |
 | --- | --- |
 | Bổ sung ảnh Anh/Việt và ảnh không có giấy | Danh sách ảnh độc lập, điều kiện chụp và quy tắc chọn trang chính |
 | Gán góc cho ảnh có tài liệu | Nhãn ngoài luồng dự đoán để đo IoU và tỷ lệ bỏ sót |
-| Kiểm tra giấy phụ, mất lề, nét nhạt | Cặp ảnh màu/tăng cường và ghi nhận lỗi theo từng ca |
-| So sánh đầu vào OCR trên cùng TXT chuẩn | CER/WER của ảnh màu sau nắn và ảnh tăng cường |
+| Sửa crop bỏ khối chữ cùng trang | Khắc phục lỗi giữ 864/1.583 hộp từ trên 8 trang FUNSD, đánh giá lại trên tập độc lập |
+| Mở rộng đánh giá OCR có TXT chuẩn | Kiểm chứng kết quả hai ảnh trên tập lớn hơn, thêm tiếng Việt có nhãn |
 | Chuẩn bị demo và trao đổi với giảng viên | Một ảnh qua scan, giải thích fallback và giới hạn hiện tại |
 
 Ưu tiên kiểm thử độc lập trước khi khẳng định scanner hoàn thiện. Chưa dùng nhãn test để chỉnh ngưỡng; chưa chạy lại toàn SmartDoc chỉ để bổ sung hình minh họa cho báo cáo.
