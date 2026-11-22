@@ -19,7 +19,7 @@ Báo cáo đầy đủ, phương pháp, số liệu và ảnh minh họa nằm t
 
 ## Việc cần làm ở ngày 5
 
-Đã có kiểm tra chất lượng theo quy tắc, thư mục scan ổn định cho từng ảnh và mốc minh họa trước/sau. Còn cần kiểm tra cắt mất chữ, giấy phụ, nét nhạt và ảnh âm tính trên tập riêng. OCR tiếp tục dùng chung scanner; chưa đo lại chất lượng nhận dạng sau tăng cường ảnh.
+Đã có kiểm tra chất lượng theo quy tắc, thư mục scan ổn định cho từng ảnh và mốc minh họa trước/sau. Đã kiểm tra bổ sung 23 mẫu: giữ 864/1.583 hộp từ trên 8 trang FUNSD, phát hiện crop dự phòng bỏ khối chữ cùng trang. Hai ảnh tiếng Anh có TXT cải thiện CER/WER sau tăng cường; 6 ROI âm từ một ảnh bị từ chối. Ưu tiên sửa giữ nội dung, rồi kiểm thử độc lập; chưa coi toàn luồng scan đã hoàn thiện.
 
 1. Chuẩn bị tập riêng gồm ảnh tiếng Việt, tiếng Anh, giấy gần màu nền, bóng đổ, góc nghiêng và ảnh không có giấy. Không lấy lại frame SmartDoc để gọi là ảnh mới.
 2. Lập danh sách nguồn ảnh; thống nhất cách xử lý sách, nhiều trang và tài liệu bị che trước khi chấm.
@@ -30,6 +30,8 @@ Báo cáo đầy đủ, phương pháp, số liệu và ảnh minh họa nằm t
 Chưa xác minh dữ liệu huấn luyện sẵn của DocAligner có trùng SmartDoc. Vì vậy không dùng điểm SmartDoc cao để thay cho kiểm thử độc lập này.
 
 ## Kết quả và quy tắc theo dõi
+
+**Bổ sung 22/11/2026:** đã sửa giữ mục 3 ở `anh_thu.png`, thêm chọn hướng đọc và thử `--ocr-engine rapidocr` trên ba ảnh chụp cùng trang mới. Cả ba đã xuất scan/TXT; OCR vẫn có từ sai/dòng yếu, chưa có TXT chuẩn để chấm. Hai ảnh cũ có nhãn giữ CER 0% và 1,06% trong kiểm tra lại bằng Tesseract. Chưa chốt thay engine mặc định, chưa đo lại toàn bộ scanner. Xem mục 4.1 báo cáo và README để chạy luồng thử.
 
 - [Bảng so sánh chính](results/scanner_comparison.csv).
 - [Danh sách 200 ảnh phát triển](results/scanner_dev_manifest.csv).

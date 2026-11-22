@@ -17,6 +17,7 @@ from scanner.detect import detect_document
 from scanner.geometry import build_scan
 from scanner.content_scan import crop_content, page_crop_seems_wrong
 from scanner.appearance import assess_document, enhance_document, CONFIG_PATH as SCAN_CONFIG_PATH
+from scanner.orientation import orient_for_reading
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
@@ -28,8 +29,36 @@ class ScanRejected(ValueError):
         self.info = info
 
 
-def scan_document(image, method=None, language="eng", tessdata_dir=None, check_content=False, enhance=True):
+def scan_document(image, method=None, language="eng", tessdata_dir=None, check_content=False, enhance=True, text_reader=None):
     """Hàm scan dùng chung cho lệnh scan riêng và pipeline có OCR."""
+    oriented, orientation_matrix, orientation = orient_for_reading(image, text_reader)
+    orientation["T_source_to_oriented"] = orientation_matrix.tolist()
+    try:
+        scanned, info = scan_oriented_document(oriented, method, language, tessdata_dir, check_content, enhance, text_reader)
+    except ScanRejected as error:
+        error.info["orientation"] = orientation
+        raise
+    # Mọi tọa độ công bố vẫn tham chiếu ảnh gốc trước xoay.
+    inverse = np.linalg.inv(orientation_matrix)
+    for key in ("corners_original", "rejected_page_corners"):
+        if info.get(key) is not None:
+            info[key] = cv2.perspectiveTransform(np.float32([info[key]]), inverse)[0].tolist()
+    for key in ("T_source_to_output", "H_source_to_warp"):
+        if info.get(key) is not None:
+            info[key] = (np.array(info[key]) @ orientation_matrix).tolist()
+    refinement = (info.get("content_detection") or {}).get("perspective_refinement", {})
+    if refinement.get("quad_original") is not None:
+        refinement["quad_original"] = cv2.perspectiveTransform(
+            np.float32([refinement["quad_original"]]), inverse)[0].tolist()
+    info["orientation"] = orientation
+    if orientation["status"] in ("uncertain", "unavailable"):
+        info["warnings"].append("reading_orientation_review")
+        info["review_recommended"] = True
+    return scanned, info
+
+
+def scan_oriented_document(image, method=None, language="eng", tessdata_dir=None, check_content=False, enhance=True, text_reader=None):
+    """Detect và cắt trên ảnh đã chọn hướng; wrapper đổi tọa độ về ảnh gốc."""
     detection = detect_document(image, method=method)
     corners = detection["corners"]
     info = {"scanner_status": detection["status"], "page_detector_status": detection["status"],
@@ -47,14 +76,16 @@ def scan_document(image, method=None, language="eng", tessdata_dir=None, check_c
         if suspect:
             info["warnings"].append("page_quality_rejected")
         if check_content:
-            text_mismatch, info["page_crop_check"] = page_crop_seems_wrong(image, scanned, language, tessdata_dir)
+            options = {} if text_reader is None else {"text_reader": text_reader}
+            text_mismatch, info["page_crop_check"] = page_crop_seems_wrong(image, scanned, language, tessdata_dir, **options)
             suspect = suspect or text_mismatch
             if text_mismatch:
                 info["warnings"].append("page_crop_text_mismatch")
     else:
         suspect = True
     if suspect:
-        content = crop_content(image, language, tessdata_dir)
+        options = {} if text_reader is None else {"text_reader": text_reader}
+        content = crop_content(image, language, tessdata_dir, **options)
         if content is None:
             if corners is None:
                 info["scanner_status"] = "scan_failed"

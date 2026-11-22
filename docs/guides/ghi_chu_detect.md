@@ -231,6 +231,14 @@ Yêu cầu là cắt phần ngoài khung, nắn phối cảnh để trang/dòng 
 
 ## 12. Dọn kết quả lặp và cách chạy hiện tại
 
+### Cập nhật crop dự phòng 22/11/2026
+
+- `anh_thu.png` từng bị mất mục **3. Evaluation Metrics** vì phần đầu và phần cuối được chia thành hai cụm, chỉ cụm lớn nhất được giữ.
+- `content_scan.py` vẫn chọn cụm chính lớn nhất trước, sau đó thử nối các đoạn gần theo chiều dọc: chồng lấn ngang ít nhất nửa chiều rộng cụm nhỏ hơn, khoảng cách tối đa bốn chiều cao hộp từ trung vị, nền sáng hỗ trợ ít nhất 95% vùng đoạn và 98% khoảng nối. Đây là heuristic, không phải xác suất cùng trang.
+- Ngưỡng sáng lấy từ cụm chính để viền trắng sinh ra khi xoay ảnh không lấn át phần giấy trong bóng. Không gom toàn bộ hộp từ; hai cụm cách nhau bằng nền tối hoặc ở hai bên vẫn được tách.
+- Metadata `content_detection.region_selection.joined_blocks` ghi các khối đã giữ. `source = same_paper_text_blocks` nghĩa là đã nối thêm đoạn; đây vẫn là fallback, không phải góc DocAligner.
+- Pipeline đã chạy lại và giữ được tiêu đề mục 3 cùng cả hai dòng nội dung cuối. OCR đọc được phần này nhưng còn nhiễu và lỗi nhận dạng; không có TXT chuẩn cho ảnh nên chưa công bố CER/WER. Không coi đây là đã sửa hết lỗi giữ nội dung trên FUNSD hoặc ảnh mới.
+
 Nguyên nhân lặp là CLI cũ luôn tạo `single_<thời_gian>` cho mỗi lần chạy. Theo yêu cầu người dùng, CLI một ảnh đã đổi sang cập nhật một thư mục cố định theo đường dẫn ảnh.
 
 ```powershell

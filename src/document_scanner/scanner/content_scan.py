@@ -87,6 +87,52 @@ def refine_content_perspective(image, words):
     return None
 
 
+def join_same_paper_blocks(candidates, words, background, scale):
+    """Giữ các đoạn gần nhau trên cùng nền giấy, không gom mọi chữ trong ảnh."""
+    selected = dict(candidates[0])
+    members = [0]
+    line_height = float(np.median([w["box"][3] - w["box"][1] for w in words]))
+
+    def pixels(box):
+        x1, y1 = np.floor(np.array(box[:2]) * scale).astype(int)
+        x2, y2 = np.ceil(np.array(box[2:]) * scale).astype(int)
+        return background[max(0, y1):y2, max(0, x1):x2]
+
+    seed = pixels(selected["box"])
+    # Lấy độ sáng ở cụm chính: viền trắng do xoay không được quyết định ngưỡng.
+    cutoff = max(120, float(np.percentile(seed, 10)) - 25)
+    changed = True
+    while changed:
+        changed = False
+        for index, candidate in enumerate(candidates):
+            if index in members:
+                continue
+            a, b = selected["box"], candidate["box"]
+            left, right = max(a[0], b[0]), min(a[2], b[2])
+            overlap = right - left
+            if overlap < .5 * min(a[2] - a[0], b[2] - b[0]):
+                continue
+            top, bottom = min(a[3], b[3]), max(a[1], b[1])
+            gap = bottom - top
+            # Chỉ nối theo chiều đọc khi có khoảng trắng nhỏ giữa hai đoạn.
+            if not 0 < gap <= 4 * line_height:
+                continue
+            block, bridge = pixels(b), pixels([left, top, right, bottom])
+            if not block.size or not bridge.size:
+                continue
+            if np.mean(block >= cutoff) < .95 or np.mean(bridge >= cutoff) < .98:
+                continue
+            selected["box"] = [min(a[0], b[0]), min(a[1], b[1]),
+                               max(a[2], b[2]), max(a[3], b[3])]
+            selected["word_count"] += candidate["word_count"]
+            members.append(index)
+            changed = True
+    if len(members) > 1:
+        x1, y1, x2, y2 = selected["box"]
+        selected.update(area=(x2 - x1) * (y2 - y1), source="same_paper_text_blocks")
+    return selected, members
+
+
 def select_content_region(image, words):
     """Chọn một vùng lớn nhất có chữ, không bao chung mọi hộp từ."""
     reliable = reliable_words(words)
@@ -158,9 +204,12 @@ def select_content_region(image, words):
         x1, y1, x2, y2 = candidate["box"]
         candidate["area"] = (x2 - x1) * (y2 - y1)
     candidates.sort(key=lambda item: (item["area"], item["word_count"]), reverse=True)
-    return {"selection": "largest_supported_text_region", "selected": candidates[0],
+    selected, members = join_same_paper_blocks(candidates, reliable, background, scale)
+    competitors = [item for index, item in enumerate(candidates) if index not in members]
+    return {"selection": "largest_supported_text_region", "selected": selected,
             "candidates": candidates, "reliable_words_total": len(reliable),
-            "ambiguous": len(candidates) > 1 and candidates[1]["area"] >= .8 * candidates[0]["area"]}
+            "joined_blocks": [candidates[index]["box"] for index in members],
+            "ambiguous": any(item["area"] >= .8 * selected["area"] for item in competitors)}
 
 
 def find_text_words(image, language, tessdata_dir=None):
@@ -183,13 +232,14 @@ def reliable_character_count(words):
     return sum(sum(char.isalnum() for char in word["text"]) for word in reliable_words(words))
 
 
-def page_crop_seems_wrong(image, scanned, language, tessdata_dir=None):
+def page_crop_seems_wrong(image, scanned, language, tessdata_dir=None, text_reader=None):
     """Cảnh báo khi khung chỉ có rất ít chữ, trong khi ảnh gốc có nhiều chữ."""
-    scan_count = reliable_character_count(find_text_words(scanned, language, tessdata_dir))
+    reader = text_reader or find_text_words
+    scan_count = reliable_character_count(reader(scanned, language, tessdata_dir))
     # Chỉ kiểm tra thêm ảnh gốc khi ảnh sau cắt có rất ít chữ đáng tin cậy.
     if scan_count >= 40:
         return False, {"scan_reliable_characters": scan_count, "source_reliable_characters": None}
-    source_count = reliable_character_count(find_text_words(image, language, tessdata_dir))
+    source_count = reliable_character_count(reader(image, language, tessdata_dir))
     suspect = source_count >= 40 and source_count >= 3 * max(scan_count, 1)
     return suspect, {"scan_reliable_characters": scan_count, "source_reliable_characters": source_count}
 
@@ -228,12 +278,25 @@ def estimate_text_angle(image):
     return 0.0 if abs(angle) < 0.3 else angle
 
 
-def crop_content(image, language, tessdata_dir=None):
+def crop_content(image, language, tessdata_dir=None, text_reader=None):
     """Chọn cụm chữ chính, rồi thử ước lượng khung giấy để nắn phối cảnh."""
     height, width = image.shape[:2]
+    reader = text_reader or find_text_words
+    original_words = reader(image, language, tessdata_dir)
     proposed_angle = estimate_text_angle(image)
+    # Khung dòng nghiêng của OCR học sâu cho góc sát chữ hơn đường viền giấy.
+    line_angles = []
+    for word in reliable_words(original_words):
+        if "polygon" not in word:
+            continue
+        polygon = np.array(word["polygon"])
+        dx, dy = polygon[1] - polygon[0]
+        angle = math.degrees(math.atan2(dy, dx))
+        if abs(angle) <= 20 and abs(dx) >= 3 * abs(dy):
+            line_angles.append(angle)
+    if len(line_angles) >= 3:
+        proposed_angle = float(np.median(line_angles))
     # Không giả định mọi đường ngang đều là dòng chữ: thử đọc cả ảnh gốc.
-    original_words = find_text_words(image, language, tessdata_dir)
     original_score = reliable_character_count(original_words)
     angle = proposed_angle
     rotation = cv2.getRotationMatrix2D((width / 2, height / 2), angle, 1.0)
@@ -245,7 +308,7 @@ def crop_content(image, language, tessdata_dir=None):
     if angle:
         rotated = cv2.warpAffine(image, rotation, (new_width, new_height),
                                  borderValue=(255, 255, 255))
-        rotated_words = find_text_words(rotated, language, tessdata_dir)
+        rotated_words = reader(rotated, language, tessdata_dir)
         rotated_score = reliable_character_count(rotated_words)
     else:
         rotated, rotated_words, rotated_score = image, original_words, original_score
@@ -261,7 +324,7 @@ def crop_content(image, language, tessdata_dir=None):
     if region is None:
         return None
 
-    # Chỉ chừa lề quanh vùng đã chọn, không gom thêm các cụm chữ bên ngoài.
+    # Chừa lề quanh vùng chính và các đoạn gần đã qua kiểm tra nền giấy.
     left, top, right, bottom = region["selected"]["box"]
     margin = max(15, round(0.01 * max(new_width, new_height)))
     x1, y1 = max(0, left - margin), max(0, top - margin)

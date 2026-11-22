@@ -31,6 +31,27 @@ class OcrPipelineTests(unittest.TestCase):
         quality.start()
         self.addCleanup(quality.stop)
 
+    def test_detailed_ocr_uses_separate_image_and_preserves_coordinate_transform(self):
+        details = {"text": "Hello", "words": [], "lines": [], "word_count": 1,
+                   "mean_word_confidence": 40.0, "low_confidence_word_count": 1,
+                   "warnings": ["ocr_low_confidence_words_review"],
+                   "confidence_note": "not accuracy", "coordinate_space": "OCR input",
+                   "reading_order": "Tesseract"}
+        with patch.object(pipeline, "OUTPUT_ROOT", self.root / "output"), \
+                patch.object(scan_image, "detect_document") as detector, \
+                patch.object(pipeline, "recognize_image", return_value=details):
+            pipeline.process_image(self.image_path, "funsd_eng", input_type="scan")
+        detector.assert_not_called()
+        output = next((self.root / "output").iterdir())
+        scan = cv2.imread(str(output / "scan.png"))
+        np.testing.assert_array_equal(scan, self.image)
+        self.assertTrue((output / "ocr_input.png").is_file())
+        ocr = json.loads((output / "ocr.json").read_text(encoding="utf-8"))
+        metadata = json.loads((output / "metadata.json").read_text(encoding="utf-8"))
+        self.assertEqual(ocr["input_image"], "ocr_input.png")
+        self.assertTrue(metadata["review_recommended"])
+        np.testing.assert_allclose(np.array(metadata["T_source_to_ocr"]) @ [0, 0, 1], [12, 12, 1])
+
     def test_scanned_input_skips_detector_and_records_configuration(self):
         with patch.object(pipeline, "OUTPUT_ROOT", self.root / "output"), \
                 patch.object(scan_image, "detect_document") as detect, \
@@ -257,6 +278,64 @@ class OcrPipelineTests(unittest.TestCase):
         self.assertTrue(result["ambiguous"])
         self.assertEqual(len(result["candidates"]), 2)
         self.assertLess(result["selected"]["area"], 10000)
+
+    def test_orientation_keeps_source_coordinates_in_scan_metadata(self):
+        from scanner.orientation import rotate_quarter_turn
+        upright, rotation = rotate_quarter_turn(self.image, 3)
+        corners = [[0, 0], [39, 0], [39, 59], [0, 59]]
+        info = {"warnings": [], "corners_original": corners, "rejected_page_corners": None,
+                "T_source_to_output": np.eye(3).tolist(), "H_source_to_warp": np.eye(3).tolist()}
+        orientation = {"applied": True, "rotation_ccw": 270, "status": "selected"}
+        with patch.object(scan_image, "orient_for_reading", return_value=(upright, rotation, orientation)), \
+                patch.object(scan_image, "scan_oriented_document", return_value=(upright, info)):
+            _, result = scan_image.scan_document(self.image)
+        np.testing.assert_allclose(result["T_source_to_output"], rotation)
+        recovered = cv2.perspectiveTransform(np.float32([result["corners_original"]]), rotation)[0]
+        np.testing.assert_allclose(recovered, corners)
+
+    def test_rapid_ocr_uses_color_input_and_preserves_display_scan(self):
+        enhanced = np.zeros_like(self.image)
+        info = {"scanner_status": "accepted", "warnings": [], "T_source_to_output": np.eye(3).tolist()}
+        details = {"text": "Hello", "word_count": 1, "mean_word_confidence": None,
+                   "low_confidence_word_count": None, "warnings": [], "confidence_note": "line scores",
+                   "coordinate_space": "OCR image", "reading_order": "line order"}
+        seen = []
+        def recognize(path):
+            seen.append(cv2.imread(str(path)))
+            return details.copy()
+        with patch.object(pipeline, "OUTPUT_ROOT", self.root / "output"), \
+                patch.object(scan_image, "orient_for_reading"), \
+                patch.object(pipeline, "scan_document", return_value=(enhanced, info)), \
+                patch.object(pipeline, "recognize_rapidocr", side_effect=recognize):
+            pipeline.process_image(self.image_path, "eng", ocr_engine="rapidocr")
+        output = next((self.root / "output").iterdir())
+        self.assertEqual(int(cv2.imread(str(output / "scan.png")).max()), 0)
+        self.assertGreater(int(seen[0].mean()), 240)
+        metadata = json.loads((output / "metadata.json").read_text(encoding="utf-8"))
+        self.assertEqual(metadata["ocr_engine"], "rapidocr")
+        self.assertEqual(metadata["ocr_model_sha256"], {})
+
+    def test_footer_on_same_paper_is_preserved(self):
+        image = np.full((500, 700, 3), 220, np.uint8)
+        main = [{"text": "main", "box": [x, y, x + 40, y + 20], "confidence": 90}
+                for y in (100, 140, 180) for x in (200, 260, 320)]
+        footer = [{"text": "footer", "box": [x, 260, x + 40, 280], "confidence": 90}
+                  for x in (200, 260, 320)]
+        result = content_scan.select_content_region(image, main + footer)
+        self.assertEqual(result["selected"]["box"], [200, 100, 360, 280])
+        self.assertEqual(result["selected"]["word_count"], 12)
+        self.assertFalse(result["ambiguous"])
+
+    def test_text_on_separate_sheet_across_dark_gap_is_not_joined(self):
+        image = np.full((500, 700, 3), 220, np.uint8)
+        image[215:245] = 60
+        main = [{"text": "main", "box": [x, y, x + 40, y + 20], "confidence": 90}
+                for y in (100, 140, 180) for x in (200, 260, 320)]
+        other = [{"text": "other", "box": [x, 260, x + 40, 280], "confidence": 90}
+                 for x in (200, 260, 320)]
+        result = content_scan.select_content_region(image, main + other)
+        self.assertEqual(result["selected"]["box"], [200, 100, 360, 200])
+        self.assertEqual(result["selected"]["word_count"], 9)
 
     def test_visual_region_preserves_strokes_above_recognized_words(self):
         image = np.full((600, 800, 3), 230, np.uint8)
