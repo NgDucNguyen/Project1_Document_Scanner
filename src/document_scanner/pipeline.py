@@ -50,8 +50,8 @@ def process_image(image_path, language, input_type="photo", psm=None, tessdata_d
         raise ValueError("OCR engine không hợp lệ.")
     if ocr_layout not in ("auto", "form", "columns", "plain"):
         raise ValueError("OCR layout không hợp lệ.")
-    if ocr_engine == "rapidocr" and (language != "eng" or psm is not None or tessdata_dir is not None):
-        raise ValueError("RapidOCR hiện dùng eng, không nhận cấu hình PSM hoặc tessdata của Tesseract.")
+    if ocr_engine == "rapidocr" and (language not in ("eng", "vie") or psm is not None or tessdata_dir is not None):
+        raise ValueError("RapidOCR dùng eng hoặc vie, không nhận cấu hình PSM hoặc tessdata tùy chỉnh.")
     if ocr_engine == "tesseract" and ocr_layout != "auto":
         raise ValueError("OCR layout chỉ dùng với RapidOCR.")
     # Mô hình tiếng Anh dùng PSM 11 nếu không yêu cầu cấu hình khác.
@@ -149,14 +149,14 @@ def process_image(image_path, language, input_type="photo", psm=None, tessdata_d
         if not cv2.imwrite(str(ocr_path), ocr_base):
             raise OSError("Không lưu được ảnh màu cho OCR.")
     preparation = {"applied": False, "method": "disabled_or_non_english", "T_scan_to_ocr": np.eye(3).tolist()}
-    if ocr_prepare and language in ("eng", "funsd_eng"):
+    if ocr_prepare and language in ("eng", "funsd_eng", "vie"):
         ocr_image, preparation = prepare_ocr_image(ocr_base)
         if preparation["applied"]:
             ocr_path = output_folder / "ocr_input.png"
             if not cv2.imwrite(str(ocr_path), ocr_image):
                 raise OSError("Không lưu được ảnh đầu vào OCR: " + str(ocr_path))
     if ocr_engine == "rapidocr":
-        recognition = recognize_rapidocr(ocr_path)
+        recognition = recognize_rapidocr(ocr_path, language="vie") if language == "vie" else recognize_rapidocr(ocr_path)
         if recognition.get("lines") is not None:
             recognition = apply_layout(recognition, ocr_layout)
     else:
@@ -188,6 +188,7 @@ def process_image(image_path, language, input_type="photo", psm=None, tessdata_d
         "input_type": input_type,
         "language": language,
         "ocr_engine": ocr_engine,
+        "ocr_backend": None if ocr_details is None else ocr_details.get("engine", "tesseract"),
         "ocr_layout": None if ocr_details is None or "layout" not in ocr_details else {
             "requested_mode": ocr_details["layout"]["requested_mode"],
             "selected_mode": ocr_details["layout"]["selected_mode"],
@@ -229,6 +230,7 @@ def process_image(image_path, language, input_type="photo", psm=None, tessdata_d
             for path in (Path(__file__), Path(__file__).parent / "ocr/recognize.py",
                          Path(__file__).parent / "ocr/prepare_image.py", Path(__file__).parent / "ocr/rapid_reader.py",
                          Path(__file__).parent / "ocr/layout.py",
+                         Path(__file__).parent / "ocr/vietnamese.py",
                          Path(__file__).parent / "scanner/orientation.py", Path(__file__).parent / "scanner/content_scan.py",
                          Path(__file__).parent / "scanner/scan_image.py", PROJECT_ROOT / "configs/scan.json")
         },
@@ -328,8 +330,8 @@ def main():
                         help="RapidOCR: tự chọn bố cục, gom hàng form, đọc theo cột hoặc giữ dòng gốc.")
 
     args = parser.parse_args()
-    if args.ocr_engine == "rapidocr" and (args.psm is not None or args.lang != "eng" or args.tessdata_dir is not None or args.ocr_model != "auto"):
-        parser.error("RapidOCR hiện dùng tiếng Anh; các tùy chọn --psm, --tessdata-dir, --ocr-model yêu cầu --ocr-engine tesseract.")
+    if args.ocr_engine == "rapidocr" and (args.psm is not None or args.lang not in ("eng", "vie") or args.tessdata_dir is not None or args.ocr_model != "auto"):
+        parser.error("RapidOCR dùng --lang eng hoặc vie; --psm, --tessdata-dir, --ocr-model chỉ dùng với --ocr-engine tesseract.")
     if args.ocr_engine == "tesseract" and args.ocr_layout != "auto":
         parser.error("--ocr-layout chỉ dùng với RapidOCR.")
 
@@ -342,7 +344,10 @@ def main():
     except ValueError as error:
         parser.error(str(error))
     if args.ocr_engine == "rapidocr":
-        print("OCR: RapidOCR 3.10.0, PP-OCRv6 small; ảnh màu trước tăng cường; bố cục:", args.ocr_layout)
+        if language == "vie":
+            print("OCR tiếng Việt: RapidOCR tìm dòng + Tesseract vie_best đọc từng dòng; bố cục:", args.ocr_layout)
+        else:
+            print("OCR: RapidOCR 3.10.0, PP-OCRv6 small; ảnh màu trước tăng cường; bố cục:", args.ocr_layout)
     else:
         print("Mô hình OCR:", language, "- thư mục:", tessdata_dir or "Tesseract cài trên máy")
 

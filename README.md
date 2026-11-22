@@ -131,6 +131,30 @@ python -X utf8 src/document_scanner/pipeline.py --image "data/raw/thu_ocr/anh.jp
 
 Đầu ra ở `data/processed/pipeline/<run_id>/`: `scan.png`, `text.txt`, `metadata.json`; thêm `evaluation.json` khi có `--reference "đường/dẫn/nhãn.txt"`. Với ảnh đã scan sẵn, dùng `--input-type scan` để bỏ qua tìm góc. OCR tiếng Anh mặc định là RapidOCR, bố cục auto; funsd_eng/PSM 11 giữ trong nhánh --ocr-engine tesseract. Với `--ocr-engine rapidocr`, OCR cuối đọc `scan_color.png` hoặc bản phóng từ ảnh này, không đọc `scan.png` tăng cường. `metadata.json` ghi chính xác tên ảnh OCR ở `ocr_input_image`. Có 69 kiểm thử đạt sau bổ sung bố cục ngày 22/11; không cần chạy lại benchmark khi chỉ sửa tài liệu.
 
+### OCR tiếng Việt trên ảnh chụp
+
+Mặc định tiếng Anh vẫn dùng RapidOCR PP-OCRv6 small. Với `--lang vie`, luồng scan dùng cùng bằng chứng dòng RapidOCR như trước; OCR cuối dùng RapidOCR khoanh dòng, nắn từng polygon trên bản màu và Tesseract `vie` từ tessdata_best đọc từng dòng bằng PSM 7. Sau đó vẫn gom bố cục auto/form/columns/plain. `metadata.json` ghi backend `rapidocr_detection_tesseract_vie`; đây là cấu hình kết hợp hai bộ, không phải PP-OCRv6 đã được huấn luyện thêm tiếng Việt.
+
+```text
+python -X utf8 src/document_scanner/pipeline.py --image "data/raw/thu_ocr/Trang1.jpg" --lang vie
+```
+
+Chạy cả 6 ảnh trong Git Bash:
+
+```bash
+for img in data/raw/thu_ocr/Trang{1..6}.jpg; do
+  python -X utf8 src/document_scanner/pipeline.py --image "$img" --lang vie
+done
+```
+
+Ảnh scan sẵn thêm `--input-type scan`. Mỗi lượt lưu `scan.png` để xem, `scan_color.png` cho OCR ảnh chụp, `ocr_input.png` khi cần phóng, `text.txt` sau gom bố cục, `text_raw.txt` trước gom và `ocr.json` chứa khung dòng. `rapidocr_text_before_vie` trong từng dòng là chữ do bộ cũ đọc để đối chiếu, không dùng thay dòng tiếng Việt bị rỗng. Không tự thêm dấu bằng từ điển hoặc viết lại nội dung.
+
+Trên máy mới, cài Tesseract và môi trường RapidOCR theo mục cài đặt; tải [vie.traineddata chính thức](https://github.com/tesseract-ocr/tessdata_best/blob/main/vie.traineddata), đặt tại `models/tesseract_vi/vie.traineddata`. SHA-256 bản đã thử: `b6b49293d95d0b6dbd8780174627e82c75be957b6f4ed9862155540d6b00bb45`. Mô hình không push GitHub. Code kiểm tra hash và báo lỗi khi thiếu/sai bản, không âm thầm chạy bộ đọc thiếu dấu.
+
+Kiểm tra trực tiếp bảng ký tự trong file PP-OCRv6 small đang dùng: thiếu nhiều ký tự Việt có dấu và không có dấu tổ hợp để ghép lại. Bản Latin PP-OCRv5 tải thử cũng thiếu các ký tự này, nên không được chọn. Vấn đề này cũng được ghi nhận tại [PaddleOCR #18254](https://github.com/PaddlePaddle/PaddleOCR/issues/18254). Không sửa bảng ký tự ONNX bằng cách chèn thêm chữ vì trọng số đầu ra chưa được huấn luyện cho chúng.
+
+Giới hạn: sáu ảnh là mẫu phát triển của cùng một tài liệu, không phải sáu tài liệu độc lập; chưa có TXT đầy đủ được kiểm chứng để chấm CER/WER. OCR còn có thể sai dấu, tên riêng, số hoặc chữ chạm chữ ký. Scanner vẫn có thể cắt thiếu tiêu đề; OCR không phục hồi phần đã mất. Viền trắng 12 px chỉ hỗ trợ đọc crop, không khôi phục dấu nằm ngoài polygon.
+
 ### Bố cục form và nhiều cột ngày 22 tháng 11
 
 RapidOCR là bộ đọc mặc định. Trên 30 trang FUNSD validation cùng đầu vào đã chuẩn bị, RapidOCR đạt CER 6,80%, WER 28,65%; Tesseract/funsd_eng/PSM 11 đạt 19,41% và 42,29%. Chấm theo vùng nhãn sau OCR toàn trang, không dùng nhãn để cắt ảnh. Đây là validation đã dùng phát triển, không phải test độc lập; chưa đo đúng quan hệ ô form. Lượt: `artifacts/ocr/funsd_validation_20261122/results.json`.

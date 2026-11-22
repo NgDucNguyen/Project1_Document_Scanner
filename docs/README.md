@@ -1,8 +1,10 @@
 # Mục lục tài liệu
 
+**Báo cáo cập nhật 23/11/2026:** mục 4 có 8 hình OCR ngay cạnh nội dung phân tích: ảnh và TXT tiếng Anh, form trước/sau gom hàng, giới hạn RDTAG, tiếng Việt trước/sau và lỗi mất tiêu đề. Bản Word hiện có 18 trang; OCR ở trang 11–18. Đã bổ sung CER/WER sơ bộ cho Trang1 từ bản chép thủ công chưa được kiểm chứng độc lập; chưa có nhãn chuẩn cho cả sáu trang. Mục 4.7 tổng hợp vấn đề còn tồn tại, mục 4.8 ghi lệnh và đường dẫn demo.
+**Tiếng Việt bổ sung 22/11/2026:** --lang vie dùng RapidOCR tìm dòng và Tesseract vie_best đọc từng dòng màu đã nắn; đã chạy sáu trang cùng báo cáo. Xem mục 4.4–4.6 của báo cáo.
 **Cập nhật 22/11/2026:** báo cáo MD/Word đã đồng bộ phần chọn hướng đọc, sửa crop mất mục 3 và thử RapidOCR trên ba ảnh chụp cùng trang. Đã chốt nhánh RapidOCR đọc ảnh màu sau cắt/nắn; `scan.png` tăng cường chỉ để xem. Mục 4.1–4.2 giải thích kết quả đối chiếu hai đầu vào, vai trò từng file và các giới hạn. Chưa có CER/WER cho ba ảnh mới; RapidOCR đã được chọn làm mặc định CLI; Tesseract/FUNSD giữ để đối chứng. Điểm test DocAligner 4.201/4.202 (99,98%), mean IoU 0,9889 và audit mục 3.6 là mốc ngày 19/11, chưa đo lại cho luồng mới.
 
-Báo cáo giữ phần Hustack người dùng đã sửa trong Word (W8), 6 ca minh họa Canny/Otsu đối chiếu DocAligner, 2 ví dụ khung/heatmap và hình trước/sau ở đúng nội dung phân tích. Nội dung mới bổ sung đến 22/11/2026; không coi các kế hoạch tiếp theo là đã hoàn thành.
+Báo cáo giữ phần Hustack người dùng đã sửa trong Word (W8), 6 ca minh họa Canny/Otsu đối chiếu DocAligner, 2 ví dụ khung/heatmap và hình trước/sau ở đúng nội dung phân tích. Nội dung mới bổ sung đến 23/11/2026; không coi các kế hoạch tiếp theo là đã hoàn thành.
 
 Chỉ cần mở:
 

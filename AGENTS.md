@@ -24,6 +24,8 @@
 
 - Chốt OCR 22/11/2026: RapidOCR là mặc định CLI và process_image(); --ocr-engine tesseract là đối chứng. ocr/layout.py gom khung cùng hàng form hoặc chia cột XY-cut, không dùng nhãn và không sửa chữ. text_raw.txt giữ đầu ra gốc, text.txt đã sắp xếp; layout.fields chỉ là liên kết ứng viên. --ocr-layout auto/form/columns/plain. Không coi CER/WER vùng FUNSD là điểm khôi phục bố cục hay form; 30 trang validation đạt RapidOCR 6,80%/28,65% so với Tesseract 19,41%/42,29%, chưa phải test độc lập.
 
+- Cập nhật tiếng Việt 22/11/2026: `pipeline.py --lang vie` dùng ảnh màu, RapidOCR khoanh dòng và Tesseract tessdata_best/vie PSM 7 đọc crop đã nắn từng dòng. File `ocr/vietnamese.py`, trọng số `models/tesseract_vi/vie.traineddata` (hash trong code/README). Backend ghi rõ `rapidocr_detection_tesseract_vie`; tiếng Anh không đổi. PP-OCRv6 và Latin v5 cục bộ thiếu nhiều ký tự dấu nên không dùng nhận dạng cuối tiếng Việt. Không tự chèn bảng ký tự/khôi phục dấu theo ngữ cảnh. Sáu ảnh là mẫu phát triển cùng tài liệu, chưa có CER/WER toàn trang.
+
 ## Phân chia trách nhiệm mã nguồn
 
 | File | Vai trò |

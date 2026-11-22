@@ -41,3 +41,7 @@ Chưa xác minh dữ liệu huấn luyện sẵn của DocAligner có trùng Sma
 - Dùng tên lượt chạy mới, giữ kết quả mốc; không chạy lại toàn bộ chỉ vì sửa tài liệu.
 - Xem [README](../README.md) để lấy lệnh hiện hành và [AGENTS.md](../AGENTS.md) để biết quy tắc làm việc trong dự án.
 - [Nhật ký thử nghiệm trước khi dọn cấu trúc](history/scanner_experiments_2026-11-17.md) chỉ để đối chiếu lịch sử.
+
+## Bổ sung OCR tiếng Việt ngày 22 tháng 11
+
+Đã bổ sung --lang vie: RapidOCR tìm dòng + Tesseract vie_best đọc từng dòng màu đã nắn. Theo dõi sáu ảnh Trang1–Trang6 như một tài liệu phát triển; chưa có TXT chuẩn toàn trang. Việc tiếp theo: đối chiếu nội dung và crop, gán nhãn độc lập rồi đo CER/WER có dấu. Tiếng Anh vẫn dùng RapidOCR. Lệnh ở README.

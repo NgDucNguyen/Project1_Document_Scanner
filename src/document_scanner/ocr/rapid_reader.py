@@ -11,7 +11,15 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[3]
 
 
-def recognize_rapidocr(image_path, use_cls=True):
+def recognize_rapidocr(image_path, use_cls=True, language="eng"):
+    if language not in ("eng", "vie"):
+        raise ValueError("Nhánh RapidOCR hỗ trợ cấu hình eng hoặc vie.")
+    if language == "vie":
+        try:
+            from .vietnamese import check_model
+        except ImportError:
+            from vietnamese import check_model
+        check_model()
     interpreter = Path(sys.executable) if importlib.util.find_spec("rapidocr") else ROOT / "artifacts/ocr/runtime/Scripts/python.exe"
     if not interpreter.is_file():
         raise FileNotFoundError("Chưa cài môi trường RapidOCR; xem README, mục thử OCR học sâu.")
@@ -21,8 +29,11 @@ def recognize_rapidocr(image_path, use_cls=True):
                    "--worker", str(Path(image_path).resolve()), str(output)]
         if not use_cls:
             command.append("--no-cls")
+        if language == "vie":
+            command += ["--lang", "vie"]
         result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8",
-                                errors="replace", timeout=120, env=dict(os.environ, OMP_NUM_THREADS="1"))
+                                errors="replace", timeout=240 if language == "vie" else 120,
+                                env=dict(os.environ, OMP_NUM_THREADS="1"))
         if result.returncode:
             raise RuntimeError("RapidOCR không chạy được:\n" + result.stderr[-3000:])
         return json.loads(output.read_text(encoding="utf-8"))
@@ -42,7 +53,7 @@ def rapid_text_anchors(image, language=None, tessdata_dir=None):
              "confidence": line["confidence"] * 100} for line in result["lines"]]
 
 
-def run_worker(image_path, output, use_cls=True):
+def run_worker(image_path, output, use_cls=True, language="eng"):
     import importlib.metadata
     import numpy as np
     import rapidocr
@@ -68,9 +79,14 @@ def run_worker(image_path, output, use_cls=True):
                           "polygon": polygon.tolist(),
                           "box": [float(polygon[:, 0].min()), float(polygon[:, 1].min()),
                                   float(polygon[:, 0].max()), float(polygon[:, 1].max())]})
+    if language == "vie":
+        from vietnamese import recognize_vietnamese_lines
+        lines = recognize_vietnamese_lines(image_path, lines)
     warnings = [] if lines else ["ocr_empty"]
     if any(line["confidence"] < .8 for line in lines):
         warnings.append("ocr_low_confidence_lines_review")
+    if language == "vie" and any(not line["text"] for line in lines):
+        warnings.append("vietnamese_empty_lines_review")
     details = {"text": "\n".join(line["text"] for line in lines), "lines": lines, "words": [],
                "engine": "rapidocr", "engine_version": importlib.metadata.version("rapidocr"),
                "models": {name: hashlib.sha256((model_dir / name).read_bytes()).hexdigest() for name in models.values()},
@@ -80,10 +96,27 @@ def run_worker(image_path, output, use_cls=True):
                "warnings": warnings, "confidence_note": "Điểm ở cấp dòng, không phải độ chính xác hay điểm từng từ.",
                "coordinate_space": "Ảnh đầu vào OCR.",
                "reading_order": "Giữ thứ tự dòng của RapidOCR; chưa khôi phục bố cục bảng/nhiều cột."}
+    details["language"] = language
+    if language == "vie":
+        from vietnamese import check_model
+        from recognize import TESSERACT_PATH
+        model = check_model()
+        details["models"]["vie.traineddata"] = hashlib.sha256(model.read_bytes()).hexdigest()
+        details["engine"] = "rapidocr_detection_tesseract_vie"
+        details["recognizer"] = "tesseract_vie_best_psm7_empty_to13"
+        details["line_recognition_policy"] = "PSM7; chỉ thử PSM13 nếu dòng trả rỗng, không chọn theo nhãn hoặc confidence."
+        details["tesseract_version"] = subprocess.run([str(TESSERACT_PATH), "--version"], capture_output=True,
+            text=True, encoding="utf-8", errors="replace", timeout=15).stdout.splitlines()[0]
+        details["confidence_note"] = "Điểm từ Tesseract gộp theo dòng, không phải độ chính xác; không so trực tiếp với điểm RapidOCR tiếng Anh."
+        details["input_policy"] = "Cắt/nắn từng polygon dòng trên ảnh màu, viền trắng 12 px, không tự thêm dấu hoặc sửa chính tả."
     Path(output).write_text(json.dumps(details, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) not in (4, 5) or sys.argv[1] != "--worker":
-        raise SystemExit("Worker nội bộ; dùng pipeline.py --ocr-engine rapidocr.")
-    run_worker(sys.argv[2], sys.argv[3], "--no-cls" not in sys.argv)
+    import argparse
+    parser = argparse.ArgumentParser(description="Worker nội bộ; dùng pipeline.py để chạy tài liệu.")
+    parser.add_argument("--worker", nargs=2, required=True, metavar=("IMAGE", "OUTPUT"))
+    parser.add_argument("--no-cls", action="store_true")
+    parser.add_argument("--lang", choices=["eng", "vie"], default="eng")
+    args = parser.parse_args()
+    run_worker(*args.worker, use_cls=not args.no_cls, language=args.lang)
