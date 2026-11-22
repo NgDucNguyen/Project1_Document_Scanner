@@ -1,5 +1,7 @@
 # Scanner: phương pháp và cách sử dụng
 
+**Cập nhật 22/11/2026:** scan ảnh chụp đã thêm `orientation.py` để chọn hướng đọc trước detect/crop. Scan riêng dùng Tesseract; pipeline mặc định dùng khung dòng RapidOCR cho hướng/crop. Nhánh này OCR bản màu đã cắt/nắn (`scan_color.png` hoặc bản phóng `ocr_input.png`), không OCR `scan.png` tăng cường. Đây là lựa chọn đầu vào đã chốt sau đối chiếu ba ảnh; mặc định CLI nay là RapidOCR. Xem [hướng dẫn OCR](thu_ocr_mot_anh.md) để chạy.
+
 ## Hai phương pháp, cùng đầu ra
 
 `detect.py` là điểm gọi chung, chọn theo `configs/scanner.json` hoặc tham số dòng lệnh.

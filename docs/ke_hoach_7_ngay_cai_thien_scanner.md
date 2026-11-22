@@ -31,7 +31,9 @@ Chưa xác minh dữ liệu huấn luyện sẵn của DocAligner có trùng Sma
 
 ## Kết quả và quy tắc theo dõi
 
-**Bổ sung 22/11/2026:** đã sửa giữ mục 3 ở `anh_thu.png`, thêm chọn hướng đọc và thử `--ocr-engine rapidocr` trên ba ảnh chụp cùng trang mới. Cả ba đã xuất scan/TXT; OCR vẫn có từ sai/dòng yếu, chưa có TXT chuẩn để chấm. Hai ảnh cũ có nhãn giữ CER 0% và 1,06% trong kiểm tra lại bằng Tesseract. Chưa chốt thay engine mặc định, chưa đo lại toàn bộ scanner. Xem mục 4.1 báo cáo và README để chạy luồng thử.
+**Bổ sung 22/11/2026:** đã sửa giữ mục 3 ở `anh_thu.png`, thêm chọn hướng đọc và thử `--ocr-engine rapidocr` trên ba ảnh chụp cùng trang mới. Cả ba đã xuất scan/TXT; OCR vẫn có từ sai/dòng yếu, chưa có TXT chuẩn để chấm. Hai ảnh cũ có nhãn giữ CER 0% và 1,06% trong kiểm tra lại bằng Tesseract. Đã chọn RapidOCR làm mặc định sau phép đo FUNSD; chưa đo lại toàn bộ scanner. Xem mục 4.1 báo cáo và README để chạy luồng thử.
+
+**Đầu vào đã chốt sau đối chiếu:** RapidOCR đọc bản màu sau cắt/nắn (`scan_color.png` → `ocr_input.png` nếu cần phóng), không đọc `scan.png` tăng cường. Đã thử cả hai bản trên cùng ba ảnh; bản tăng cường gây phân mảnh dòng, rõ nhất ảnh …5232 (18 → 48). Chưa có TXT nên chưa tính CER/WER. Việc tiếp theo là chuẩn bị nhãn đúng cho trang này và thêm tài liệu độc lập; không dùng đoạn mẫu `english_01.txt` khác nội dung làm nhãn.
 
 - [Bảng so sánh chính](results/scanner_comparison.csv).
 - [Danh sách 200 ảnh phát triển](results/scanner_dev_manifest.csv).

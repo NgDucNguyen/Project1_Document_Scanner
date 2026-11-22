@@ -13,6 +13,7 @@ from ocr.metrics import edit_distance, normalize_text
 from ocr.recognize import recognize_image
 from ocr.prepare_image import prepare_ocr_image
 from ocr.rapid_reader import recognize_rapidocr, rapid_text_anchors
+from ocr.layout import apply_layout
 
 
 # Từ pipeline.py đi lên thư mục gốc của dự án.
@@ -44,7 +45,15 @@ def choose_ocr_model(language, tessdata_dir, choice, model_dir):
 
 
 def process_image(image_path, language, input_type="photo", psm=None, tessdata_dir=None, reference_path=None,
-                  scanner_method=None, ocr_prepare=True, ocr_engine="tesseract"):
+                  scanner_method=None, ocr_prepare=True, ocr_engine="rapidocr", ocr_layout="auto"):
+    if ocr_engine not in ("rapidocr", "tesseract"):
+        raise ValueError("OCR engine không hợp lệ.")
+    if ocr_layout not in ("auto", "form", "columns", "plain"):
+        raise ValueError("OCR layout không hợp lệ.")
+    if ocr_engine == "rapidocr" and (language != "eng" or psm is not None or tessdata_dir is not None):
+        raise ValueError("RapidOCR hiện dùng eng, không nhận cấu hình PSM hoặc tessdata của Tesseract.")
+    if ocr_engine == "tesseract" and ocr_layout != "auto":
+        raise ValueError("OCR layout chỉ dùng với RapidOCR.")
     # Mô hình tiếng Anh dùng PSM 11 nếu không yêu cầu cấu hình khác.
     if psm is None and language == "funsd_eng" and ocr_engine == "tesseract":
         psm = ENGLISH_PSM
@@ -148,6 +157,8 @@ def process_image(image_path, language, input_type="photo", psm=None, tessdata_d
                 raise OSError("Không lưu được ảnh đầu vào OCR: " + str(ocr_path))
     if ocr_engine == "rapidocr":
         recognition = recognize_rapidocr(ocr_path)
+        if recognition.get("lines") is not None:
+            recognition = apply_layout(recognition, ocr_layout)
     else:
         recognition = recognize_image(ocr_path, language, psm=psm, tessdata_dir=tessdata_dir,
                                       return_details=True)
@@ -155,6 +166,8 @@ def process_image(image_path, language, input_type="photo", psm=None, tessdata_d
     ocr_details = recognition if isinstance(recognition, dict) else None
     predicted_text = recognition["text"] if ocr_details is not None else recognition
     if ocr_details is not None:
+        if "raw_text" in ocr_details:
+            (output_folder / "text_raw.txt").write_text(ocr_details["raw_text"], encoding="utf-8")
         ocr_details["input_image"] = ocr_path.name
         ocr_details["preparation"] = preparation
         (output_folder / "ocr.json").write_text(
@@ -175,6 +188,12 @@ def process_image(image_path, language, input_type="photo", psm=None, tessdata_d
         "input_type": input_type,
         "language": language,
         "ocr_engine": ocr_engine,
+        "ocr_layout": None if ocr_details is None or "layout" not in ocr_details else {
+            "requested_mode": ocr_details["layout"]["requested_mode"],
+            "selected_mode": ocr_details["layout"]["selected_mode"],
+            "blocks": len(ocr_details["layout"]["blocks"]),
+            "field_candidates": len(ocr_details["layout"]["fields"]),
+        },
         "ocr_engine_models": None if ocr_details is None else ocr_details.get("models"),
         "ocr_engine_version": None if ocr_details is None else ocr_details.get("engine_version"),
         "content_anchor_source": scan_info.get("content_anchor_source"),
@@ -209,6 +228,7 @@ def process_image(image_path, language, input_type="photo", psm=None, tessdata_d
             str(path.relative_to(PROJECT_ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
             for path in (Path(__file__), Path(__file__).parent / "ocr/recognize.py",
                          Path(__file__).parent / "ocr/prepare_image.py", Path(__file__).parent / "ocr/rapid_reader.py",
+                         Path(__file__).parent / "ocr/layout.py",
                          Path(__file__).parent / "scanner/orientation.py", Path(__file__).parent / "scanner/content_scan.py",
                          Path(__file__).parent / "scanner/scan_image.py", PROJECT_ROOT / "configs/scan.json")
         },
@@ -302,12 +322,16 @@ def main():
                         help="Mặc định DocAligner theo cấu hình; classic dùng Canny/Otsu để đối chứng.")
     parser.add_argument("--no-ocr-prepare", action="store_true",
                         help="Bỏ phóng ảnh nhỏ/thêm viền OCR để đối chứng, không thay scanner.")
-    parser.add_argument("--ocr-engine", choices=["tesseract", "rapidocr"], default="tesseract",
-                        help="rapidocr: thử PP-OCRv6 trên ảnh màu, có tìm dòng cho crop/hướng trang.")
+    parser.add_argument("--ocr-engine", choices=["tesseract", "rapidocr"], default="rapidocr",
+                        help="Mặc định RapidOCR; tesseract để đối chứng.")
+    parser.add_argument("--ocr-layout", choices=["auto", "form", "columns", "plain"], default="auto",
+                        help="RapidOCR: tự chọn bố cục, gom hàng form, đọc theo cột hoặc giữ dòng gốc.")
 
     args = parser.parse_args()
-    if args.ocr_engine == "rapidocr" and (args.psm is not None or args.lang != "eng" or args.tessdata_dir is not None):
-        parser.error("RapidOCR thử nghiệm hiện dùng tiếng Anh, không nhận --psm hoặc --tessdata-dir.")
+    if args.ocr_engine == "rapidocr" and (args.psm is not None or args.lang != "eng" or args.tessdata_dir is not None or args.ocr_model != "auto"):
+        parser.error("RapidOCR hiện dùng tiếng Anh; các tùy chọn --psm, --tessdata-dir, --ocr-model yêu cầu --ocr-engine tesseract.")
+    if args.ocr_engine == "tesseract" and args.ocr_layout != "auto":
+        parser.error("--ocr-layout chỉ dùng với RapidOCR.")
 
     image_path = Path(args.image)
     language = args.lang
@@ -318,7 +342,7 @@ def main():
     except ValueError as error:
         parser.error(str(error))
     if args.ocr_engine == "rapidocr":
-        print("OCR thử nghiệm: RapidOCR 3.10.0, PP-OCRv6 small; ảnh màu trước tăng cường.")
+        print("OCR: RapidOCR 3.10.0, PP-OCRv6 small; ảnh màu trước tăng cường; bố cục:", args.ocr_layout)
     else:
         print("Mô hình OCR:", language, "- thư mục:", tessdata_dir or "Tesseract cài trên máy")
 
@@ -333,6 +357,7 @@ def main():
         scanner_method=args.scanner_method,
         ocr_prepare=not args.no_ocr_prepare,
         ocr_engine=args.ocr_engine,
+        ocr_layout=args.ocr_layout,
     )
 
     print()

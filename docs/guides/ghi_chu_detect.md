@@ -1,5 +1,7 @@
 # Ghi chú khi thử detect tài liệu
 
+**Chốt luồng ảnh chụp 22/11/2026:** chọn hướng đọc → DocAligner → nắn hoặc crop nội dung → giữ bản màu. Với `pipeline.py --ocr-engine rapidocr`, khung dòng RapidOCR được dùng làm bằng chứng hướng/crop; OCR cuối đọc `scan_color.png` hoặc `ocr_input.png` tạo từ ảnh màu. `scan.png` tăng cường chỉ để xem. Đã so sánh bản màu và bản tăng cường trên cùng ba ảnh, chưa có TXT để đo CER/WER; không gọi tỷ lệ phân mảnh dòng là độ chính xác. DocAligner/Canny/Otsu vẫn được giữ, các điểm benchmark cũ chưa đo lại cho wrapper mới. Lệnh và vị trí kết quả ở [hướng dẫn OCR](thu_ocr_mot_anh.md).
+
 **Cập nhật 18/11/2026.** Đây là sổ ghi chú khi thử ảnh mới và tài liệu giải thích ngắn để trình bày phương pháp. Báo cáo kết quả chính vẫn ở [báo cáo tiến độ](../bao_cao_tien_do_scanner.md).
 
 ## 1. Hiểu đúng các bước

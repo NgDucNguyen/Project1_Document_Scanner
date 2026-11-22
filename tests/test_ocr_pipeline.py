@@ -31,6 +31,11 @@ class OcrPipelineTests(unittest.TestCase):
         quality.start()
         self.addCleanup(quality.stop)
 
+    def process_image(self, *args, **kwargs):
+        # Existing tests exercise the retained Tesseract branch explicitly.
+        kwargs.setdefault("ocr_engine", "tesseract")
+        return pipeline.process_image(*args, **kwargs)
+
     def test_detailed_ocr_uses_separate_image_and_preserves_coordinate_transform(self):
         details = {"text": "Hello", "words": [], "lines": [], "word_count": 1,
                    "mean_word_confidence": 40.0, "low_confidence_word_count": 1,
@@ -40,7 +45,7 @@ class OcrPipelineTests(unittest.TestCase):
         with patch.object(pipeline, "OUTPUT_ROOT", self.root / "output"), \
                 patch.object(scan_image, "detect_document") as detector, \
                 patch.object(pipeline, "recognize_image", return_value=details):
-            pipeline.process_image(self.image_path, "funsd_eng", input_type="scan")
+            self.process_image(self.image_path, "funsd_eng", input_type="scan")
         detector.assert_not_called()
         output = next((self.root / "output").iterdir())
         scan = cv2.imread(str(output / "scan.png"))
@@ -56,7 +61,7 @@ class OcrPipelineTests(unittest.TestCase):
         with patch.object(pipeline, "OUTPUT_ROOT", self.root / "output"), \
                 patch.object(scan_image, "detect_document") as detect, \
                 patch.object(pipeline, "recognize_image", return_value="Hello") as recognize:
-            result = pipeline.process_image(self.image_path, "eng", input_type="scan", psm=6)
+            result = self.process_image(self.image_path, "eng", input_type="scan", psm=6)
         self.assertEqual(result, "Hello")
         detect.assert_not_called()
         self.assertEqual(recognize.call_args.kwargs["psm"], 6)
@@ -77,7 +82,7 @@ class OcrPipelineTests(unittest.TestCase):
                 patch.object(scan_image, "build_scan", return_value=(self.image, matrix, matrix)) as warp, \
                 patch.object(scan_image, "page_crop_seems_wrong", return_value=(False, {})), \
                 patch.object(pipeline, "recognize_image", return_value="Hello"):
-            result = pipeline.process_image(self.image_path, "eng")
+            result = self.process_image(self.image_path, "eng")
         self.assertEqual(result, "Hello")
         detect.assert_called_once()
         warp.assert_called_once()
@@ -92,7 +97,7 @@ class OcrPipelineTests(unittest.TestCase):
         model_dir.mkdir()
         with patch.object(pipeline, "OUTPUT_ROOT", self.root / "output"), \
                 patch.object(pipeline, "recognize_image", return_value="Hello") as recognize:
-            pipeline.process_image(self.image_path, "funsd_eng", input_type="scan", tessdata_dir=model_dir)
+            self.process_image(self.image_path, "funsd_eng", input_type="scan", tessdata_dir=model_dir)
         self.assertEqual(recognize.call_args.kwargs["tessdata_dir"], model_dir)
         self.assertEqual(recognize.call_args.args[1], "funsd_eng")
         output = next((self.root / "output").iterdir())
@@ -117,7 +122,7 @@ class OcrPipelineTests(unittest.TestCase):
         model_dir.mkdir()
         with patch.object(pipeline, "OUTPUT_ROOT", self.root / "output"), \
                 patch.object(pipeline, "recognize_image", return_value="Hello") as recognize:
-            pipeline.process_image(self.image_path, "funsd_eng", input_type="scan", tessdata_dir=model_dir)
+            self.process_image(self.image_path, "funsd_eng", input_type="scan", tessdata_dir=model_dir)
         self.assertEqual(recognize.call_args.kwargs["psm"], 11)
         output = next((self.root / "output").iterdir())
         metadata = json.loads((output / "metadata.json").read_text(encoding="utf-8"))
@@ -130,7 +135,7 @@ class OcrPipelineTests(unittest.TestCase):
                 patch.object(scan_image, "crop_content", return_value=None), \
                 patch.object(pipeline, "recognize_image") as recognize:
             with self.assertRaisesRegex(ValueError, "Không tìm được khung"):
-                pipeline.process_image(self.image_path, "eng")
+                self.process_image(self.image_path, "eng")
         recognize.assert_not_called()
         self.assertFalse((self.root / "output").exists())
 
@@ -143,7 +148,7 @@ class OcrPipelineTests(unittest.TestCase):
                 patch.object(scan_image, "crop_content", return_value=(self.image, transform, details)) as crop, \
                 patch.object(scan_image, "build_scan") as warp, \
                 patch.object(pipeline, "recognize_image", return_value="Hello"):
-            self.assertEqual(pipeline.process_image(self.image_path, "eng"), "Hello")
+            self.assertEqual(self.process_image(self.image_path, "eng"), "Hello")
         crop.assert_called_once()
         warp.assert_not_called()
         output = next((self.root / "output").iterdir())
@@ -166,7 +171,7 @@ class OcrPipelineTests(unittest.TestCase):
                 patch.object(scan_image, "page_crop_seems_wrong", return_value=(True, {"scan_reliable_characters": 1})), \
                 patch.object(scan_image, "crop_content", return_value=(self.image, transform, details)), \
                 patch.object(pipeline, "recognize_image", return_value="Text"):
-            pipeline.process_image(self.image_path, "eng")
+            self.process_image(self.image_path, "eng")
         output = next((self.root / "output").iterdir())
         metadata = json.loads((output / "metadata.json").read_text(encoding="utf-8"))
         self.assertEqual(metadata["scanner_status"], "content_fallback")
@@ -182,7 +187,7 @@ class OcrPipelineTests(unittest.TestCase):
         reference.write_text("Hello there\n", encoding="utf-8-sig")
         with patch.object(pipeline, "OUTPUT_ROOT", self.root / "output"), \
                 patch.object(pipeline, "recognize_image", return_value="Hello world"):
-            pipeline.process_image(image_path, "eng", input_type="scan", reference_path=reference)
+            self.process_image(image_path, "eng", input_type="scan", reference_path=reference)
         output = next((self.root / "output").iterdir())
         result = json.loads((output / "evaluation.json").read_text(encoding="utf-8"))
         self.assertEqual(result["reference_words"], 2)
@@ -198,7 +203,7 @@ class OcrPipelineTests(unittest.TestCase):
         with patch.object(pipeline, "OUTPUT_ROOT", self.root / "output"), \
                 patch.object(pipeline, "recognize_image") as recognize:
             with self.assertRaisesRegex(ValueError, "văn bản chuẩn đang rỗng"):
-                pipeline.process_image(self.image_path, "eng", input_type="scan", reference_path=reference)
+                self.process_image(self.image_path, "eng", input_type="scan", reference_path=reference)
         recognize.assert_not_called()
         self.assertFalse((self.root / "output").exists())
 
@@ -225,7 +230,7 @@ class OcrPipelineTests(unittest.TestCase):
                 patch.object(scan_image, "detect_document", return_value=detection), \
                 patch.object(scan_image, "crop_content", return_value=(self.image, np.eye(3), details)), \
                 patch.object(pipeline, "recognize_image", return_value="Text"):
-            pipeline.process_image(self.image_path, "eng")
+            self.process_image(self.image_path, "eng")
         output = next((self.root / "output").iterdir())
         metadata = json.loads((output / "metadata.json").read_text(encoding="utf-8"))
         self.assertIn("content_frame_broad", metadata["warnings"])
@@ -307,13 +312,32 @@ class OcrPipelineTests(unittest.TestCase):
                 patch.object(scan_image, "orient_for_reading"), \
                 patch.object(pipeline, "scan_document", return_value=(enhanced, info)), \
                 patch.object(pipeline, "recognize_rapidocr", side_effect=recognize):
-            pipeline.process_image(self.image_path, "eng", ocr_engine="rapidocr")
+            self.process_image(self.image_path, "eng", ocr_engine="rapidocr")
         output = next((self.root / "output").iterdir())
         self.assertEqual(int(cv2.imread(str(output / "scan.png")).max()), 0)
         self.assertGreater(int(seen[0].mean()), 240)
         metadata = json.loads((output / "metadata.json").read_text(encoding="utf-8"))
         self.assertEqual(metadata["ocr_engine"], "rapidocr")
         self.assertEqual(metadata["ocr_model_sha256"], {})
+
+    def test_default_rapidocr_writes_form_rows_and_keeps_raw_text(self):
+        details = {"text": "Name:\nJane", "lines": [
+            {"text": "Name:", "box": [0, 0, 60, 20]},
+            {"text": "Jane", "box": [100, 0, 160, 20]}],
+            "word_count": 2, "mean_word_confidence": None,
+            "low_confidence_word_count": None, "warnings": [],
+            "confidence_note": "line scores", "coordinate_space": "OCR image",
+            "reading_order": "line order"}
+        with patch.object(pipeline, "OUTPUT_ROOT", self.root / "output"), \
+                patch.object(pipeline, "recognize_rapidocr", return_value=details), \
+                patch.object(pipeline, "recognize_image") as tesseract:
+            result = pipeline.process_image(self.image_path, "eng", input_type="scan", ocr_layout="form")
+        tesseract.assert_not_called()
+        self.assertEqual(result, "Name: Jane")
+        output = next((self.root / "output").iterdir())
+        self.assertEqual((output / "text_raw.txt").read_text(encoding="utf-8"), "Name:\nJane")
+        ocr = json.loads((output / "ocr.json").read_text(encoding="utf-8"))
+        self.assertEqual(ocr["layout"]["fields"][0]["value"], "Jane")
 
     def test_footer_on_same_paper_is_preserved(self):
         image = np.full((500, 700, 3), 220, np.uint8)

@@ -2,7 +2,7 @@
 
 **Nguyễn Đức Nguyên · MSSV 202416305 · Đại học Bách khoa Hà Nội**
 
-Ảnh chụp → DocAligner → nắn bốn góc nếu có; nếu thiếu góc thì chọn vùng chữ chính để cắt dự phòng. Có thể chạy scanner riêng hoặc nối tiếp OCR tiếng Anh bằng Tesseract/FUNSD. **Canny/Otsu được giữ để đối chứng.** Pipeline có OCR còn kiểm tra dấu hiệu mất chữ sau nắn.
+Ảnh chụp → DocAligner → nắn bốn góc nếu có; nếu thiếu góc thì chọn vùng chữ chính để cắt dự phòng. Có thể chạy scanner riêng hoặc nối tiếp OCR tiếng Anh bằng RapidOCR; giữ Tesseract/FUNSD để đối chứng. **Canny/Otsu được giữ để đối chứng.** Pipeline có OCR còn kiểm tra dấu hiệu mất chữ sau nắn.
 
 ## 1. Kết quả và báo cáo cần mở
 
@@ -58,7 +58,7 @@ Nếu đã có venv thì chỉ cần kích hoạt. Có thể thay `python` bằn
 
 **Mô hình DocAligner:** tải [FastViT-T8 ONNX từ liên kết upstream](https://drive.google.com/uc?export=download&id=1W88oOkHjMza6xXbDxrG8k_C-Tf2aYKJ4), đặt tại `models/docaligner/fastvit_t8.onnx` (khoảng 13,17 MB). SHA-256 đã thử: `950070fd4a46e25d46db7c35d0ed77612d9063f70d4543c7c504f0da6a943a89`. Nguồn: [DocsaidLab/DocAligner](https://github.com/DocsaidLab/DocAligner). Không cần PyTorch; dự án chạy ONNX bằng OpenCV.
 
-**OCR:** cài Tesseract tại `C:\Program Files\Tesseract-OCR\tesseract.exe`. Mô hình tiếng Anh đã tinh chỉnh nằm ở `models/funsd_english/funsd_eng.traineddata` trên máy hiện tại. Máy khác có thể chạy OCR gốc với `--ocr-model standard`; xem [hướng dẫn OCR](docs/guides/thu_ocr_mot_anh.md) và [báo cáo OCR lịch sử](docs/history/week3_ocr_report.md) để tái tạo mô hình tinh chỉnh.
+**OCR:** cài Tesseract tại `C:\Program Files\Tesseract-OCR\tesseract.exe`. Mô hình tiếng Anh đã tinh chỉnh nằm ở `models/funsd_english/funsd_eng.traineddata` trên máy hiện tại. Nhánh đối chứng Tesseract gốc dùng `--ocr-engine tesseract --ocr-model standard`; xem [hướng dẫn OCR](docs/guides/thu_ocr_mot_anh.md) và [báo cáo OCR lịch sử](docs/history/week3_ocr_report.md) để tái tạo mô hình tinh chỉnh.
 
 Ảnh dữ liệu và trọng số mô hình chỉ giữ cục bộ, không có trong GitHub. Thiếu DocAligner thì tải mô hình hoặc chọn `classic`; chương trình không âm thầm thay phương pháp.
 
@@ -66,9 +66,17 @@ Nếu đã có venv thì chỉ cần kích hoạt. Có thể thay `python` bằn
 
 ### Thử OCR học sâu trên ảnh chụp mới (22/11/2026)
 
-`--ocr-engine rapidocr` dùng RapidOCR 3.10.0/ONNX Runtime 1.32.0 với các mô hình đi kèm: PP-OCRv6 small cho detect/recognize và bộ phân loại hướng dòng v2.0. Đây là phương án thử, Tesseract/FUNSD/PSM 11 vẫn là mặc định. Chưa có CER/WER trên ba ảnh mới; chúng là ba lần chụp cùng một trang, không phải ba tài liệu độc lập.
+`--ocr-engine rapidocr` dùng RapidOCR 3.10.0/ONNX Runtime 1.32.0 với các mô hình đi kèm: PP-OCRv6 small cho detect/recognize và bộ phân loại hướng dòng v2.0. Đã được người dùng chọn làm OCR mặc định sau so sánh FUNSD; Tesseract/FUNSD/PSM 11 giữ làm đối chứng. Chưa có CER/WER trên ba ảnh mới; chúng là ba lần chụp cùng một trang, không phải ba tài liệu độc lập.
 
 Luồng thử dùng khung dòng RapidOCR cho chọn hướng đọc và crop dự phòng, sau đó đọc ảnh màu trước tăng cường. `scanner/orientation.py` thử bốn hướng, chỉ xoay khi có bằng chứng chữ vượt ngưỡng và hơn rõ hướng thứ hai. Không ép mọi tài liệu ngang thành dọc. DocAligner/Canny/Otsu không được thay mô hình hay điều chỉnh theo các ảnh này.
+
+**Đã chốt đầu vào RapidOCR ngày 22/11:** giữ ảnh màu sau cắt/nắn để OCR; `scan.png` làm đậm chỉ để xem. Đã đối chiếu cả hai bản trên cùng ba ảnh, cùng mô hình và cùng cách phóng/thêm viền. Bản tăng cường sinh thêm lỗi và phân mảnh dòng; ở ảnh `…5232`, số dòng từ 18 thành 48. Số dòng không phải độ chính xác; chưa có TXT chuẩn nên chưa chấm CER/WER. Bằng chứng: `artifacts/ocr/scan_vs_color_20261122_154834/comparison.json` (`complete: true`). Quyết định này dành cho RapidOCR; đầu vào nhánh Tesseract đối chứng giữ cách cũ.
+
+```text
+Ảnh gốc → chọn hướng → detect/cắt/nắn → scan_color.png
+                                        ├→ tăng cường → scan.png để xem
+                                        └→ phóng/thêm viền khi cần → OCR → text.txt
+```
 
 Cài riêng một lần từ gốc dự án (cùng lệnh dùng được trong Git Bash hoặc PowerShell):
 
@@ -121,11 +129,25 @@ Chạy cùng ảnh bằng Canny/Otsu để so sánh:
 python -X utf8 src/document_scanner/pipeline.py --image "data/raw/thu_ocr/anh.jpg" --scanner-method classic
 ```
 
-Đầu ra ở `data/processed/pipeline/<run_id>/`: `scan.png`, `text.txt`, `metadata.json`; thêm `evaluation.json` khi có `--reference "đường/dẫn/nhãn.txt"`. Với ảnh đã scan sẵn, dùng `--input-type scan` để bỏ qua tìm góc. OCR tiếng Anh mặc định vẫn là funsd_eng/PSM 11. Đã bổ sung chuẩn bị riêng ảnh OCR nhỏ, đầu ra ocr.json và cảnh báo từ điểm thấp. scan.png giữ nguyên; ocr_input.png chỉ thêm khi cần phóng ảnh. 55 kiểm thử đạt.
+Đầu ra ở `data/processed/pipeline/<run_id>/`: `scan.png`, `text.txt`, `metadata.json`; thêm `evaluation.json` khi có `--reference "đường/dẫn/nhãn.txt"`. Với ảnh đã scan sẵn, dùng `--input-type scan` để bỏ qua tìm góc. OCR tiếng Anh mặc định là RapidOCR, bố cục auto; funsd_eng/PSM 11 giữ trong nhánh --ocr-engine tesseract. Với `--ocr-engine rapidocr`, OCR cuối đọc `scan_color.png` hoặc bản phóng từ ảnh này, không đọc `scan.png` tăng cường. `metadata.json` ghi chính xác tên ảnh OCR ở `ocr_input_image`. Có 69 kiểm thử đạt sau bổ sung bố cục ngày 22/11; không cần chạy lại benchmark khi chỉ sửa tài liệu.
+
+### Bố cục form và nhiều cột ngày 22 tháng 11
+
+RapidOCR là bộ đọc mặc định. Trên 30 trang FUNSD validation cùng đầu vào đã chuẩn bị, RapidOCR đạt CER 6,80%, WER 28,65%; Tesseract/funsd_eng/PSM 11 đạt 19,41% và 42,29%. Chấm theo vùng nhãn sau OCR toàn trang, không dùng nhãn để cắt ảnh. Đây là validation đã dùng phát triển, không phải test độc lập; chưa đo đúng quan hệ ô form. Lượt: `artifacts/ocr/funsd_validation_20261122/results.json`.
+
+`--ocr-layout auto` mặc định: khi có từ hai nhãn dạng dấu hai chấm, thử gom theo hàng form; trường hợp khác thử chia cột bằng khoảng trắng XY-cut. `form` ghép khung cùng hàng, `columns` ưu tiên đọc từng cột, `plain` giữ thứ tự RapidOCR gốc. Đây là heuristic hình học, không phải mô hình hiểu bảng/form; có thể chọn sai nên luôn lưu `text_raw.txt` và cảnh báo `layout_geometry_review`.
+
+```text
+python -X utf8 src/document_scanner/pipeline.py --image "data/raw/funsd/dataset/training_data/images/716552.png" --input-type scan --ocr-layout form
+python -X utf8 src/document_scanner/pipeline.py --image "data/raw/thu_ocr/anh.jpg" --ocr-layout columns
+python -X utf8 src/document_scanner/pipeline.py --image "data/raw/thu_ocr/anh.jpg" --ocr-engine tesseract
+```
+
+`text.txt` là văn bản đã sắp xếp; `text_raw.txt` giữ nguyên thứ tự dòng OCR. `ocr.json` giữ khung dòng gốc, `layout.blocks` và các cặp nhãn–giá trị ứng viên trong `layout.fields` kèm ID dòng. Không suy đoán ô trống, trạng thái checkbox hoặc tự sửa chữ; giá trị nhiều dòng và bảng phức tạp còn cần kiểm thử. OCR đã tự phát hiện/cắt từng dòng bên trong bộ đọc; bố cục mới gom các kết quả dòng, chưa thêm mô hình nhận dạng ô bảng.
 
 ### OCR tiếng Anh hiện tại
 
-Giữ một mô hình mặc định `funsd_eng`, không cần chọn mô hình. Trên 30 trang validation FUNSD, chuẩn bị ảnh nhỏ giúp CER 21,04% → 19,41%, WER 48,01% → 42,29% (chấm theo vùng nhãn sau OCR toàn trang, chưa đo thứ tự đọc). PSM 11 tốt hơn PSM 3/4 trên tập này; hai ảnh chụp cũ đã chạy toàn pipeline đạt CER/WER 0%/0% và 1,06%/7,69%. Đây là kết quả phát triển, không phải test độc lập mới.
+Mặc định dùng RapidOCR. Mốc Tesseract `funsd_eng` trước đó được giữ để đối chiếu. Trên 30 trang validation FUNSD, chuẩn bị ảnh nhỏ giúp CER 21,04% → 19,41%, WER 48,01% → 42,29% (chấm theo vùng nhãn sau OCR toàn trang, chưa đo thứ tự đọc). PSM 11 tốt hơn PSM 3/4 trên tập này; hai ảnh chụp cũ đã chạy toàn pipeline đạt CER/WER 0%/0% và 1,06%/7,69%. Đây là kết quả phát triển, không phải test độc lập mới.
 
 Mở `text.txt` để xem chữ; `ocr.json` để kiểm tra từ, dòng và tọa độ trên ảnh OCR. Điểm tin cậy Tesseract không phải độ chính xác. Dùng `--input-type scan` cho FUNSD/ảnh đã scan để bỏ bước cắt trang. OCR không sửa lỗi scanner làm mất chữ.
 

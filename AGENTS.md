@@ -10,15 +10,19 @@
 
 ## Các quyết định đang áp dụng
 
+- Người dùng đã chốt 22/11/2026: nhánh RapidOCR giữ OCR trên ảnh màu sau cắt/nắn, không OCR `scan.png` tăng cường. Chỉ tạo `ocr_input.png` từ bản màu khi cần phóng/thêm viền. Đối chiếu tại `artifacts/ocr/scan_vs_color_20261122_154834/`, không có TXT chuẩn nên không công bố CER/WER; số dòng 18/48 không phải độ chính xác. Sau đó người dùng đã chọn RapidOCR làm mặc định CLI dựa trên so sánh FUNSD.
+
 - Scanner mặc định là **DocAligner FastViT-T8 đã huấn luyện sẵn**, chạy ONNX bằng OpenCV.
 - **Giữ Canny/Otsu trong `scanner/classic.py`** để đối chứng và báo cáo. Không bỏ nhánh này khi cải thiện mô hình chính.
-- OCR tiếng Anh vẫn dùng Tesseract với `funsd_eng`; cắt vùng chữ dự phòng vẫn dùng Tesseract.
-- Cập nhật 22/11/2026: `scanner/orientation.py` chọn hướng đọc bốn chiều trước detect/crop, lưu ma trận về ảnh nguồn. `--ocr-engine rapidocr` là nhánh thử riêng: RapidOCR 3.10.0/ONNX Runtime 1.32.0, PP-OCRv6 small, khung dòng dùng cho hướng/crop và OCR ảnh màu trước tăng cường. Runtime nằm ở `artifacts/ocr/runtime`; mô hình/venv không push. Mặc định vẫn Tesseract/FUNSD, không kết luận chọn engine mới từ ba ảnh cùng một trang chưa có TXT. Dòng điểm thấp giữ nguyên để xem, không coi điểm là độ chính xác; khung dòng không phải hộp từ. Các mốc SmartDoc/latency trước 22/11 chưa đo lại cho wrapper hướng trang mới.
+- OCR tiếng Anh mặc định dùng RapidOCR; Tesseract/funsd_eng giữ làm đối chứng. Scan riêng vẫn dùng Tesseract cho bằng chứng chữ; pipeline RapidOCR dùng khung dòng RapidOCR.
+- Cập nhật 22/11/2026: `scanner/orientation.py` chọn hướng đọc bốn chiều trước detect/crop, lưu ma trận về ảnh nguồn. `--ocr-engine rapidocr` là nhánh thử riêng: RapidOCR 3.10.0/ONNX Runtime 1.32.0, PP-OCRv6 small, khung dòng dùng cho hướng/crop và OCR ảnh màu trước tăng cường. Runtime nằm ở `artifacts/ocr/runtime`; mô hình/venv không push. Sau phép đo 30 trang FUNSD validation ngày 22/11/2026, người dùng đã chọn RapidOCR làm mặc định. Không kết luận chọn engine chỉ từ ba ảnh cùng một trang chưa có TXT. Dòng điểm thấp giữ nguyên để xem, không coi điểm là độ chính xác; khung dòng không phải hộp từ. Các mốc SmartDoc/latency trước 22/11 chưa đo lại cho wrapper hướng trang mới.
 - OCR cập nhật 19/11/2026 giữ funsd_eng/PSM 11 sau so sánh trên 30 trang validation. `ocr/prepare_image.py` chỉ phóng ảnh nhỏ tối đa 2x, nhắm cạnh dài 1800 px, thêm viền 12 px khi phóng; ảnh lớn giữ nguyên. Pipeline xuất `ocr.json`, thêm `ocr_input.png` khi cần. Không dùng nhãn để chọn đầu vào/PSM từng ảnh; không coi confidence là độ chính xác hoặc tự sửa nội dung. Scanner tạm giữ nguyên; OCR không phục hồi crop mất chữ.
 - DBNet đã thử và không được chọn. Không khôi phục vào luồng mặc định nếu chưa có phép đo mới chứng minh giữ nội dung tốt hơn.
 - DocAligner chưa được tự huấn luyện/tinh chỉnh trong dự án. Chưa xác minh dữ liệu huấn luyện sẵn có trùng SmartDoc.
 - Việc tiếp theo là kiểm thử ảnh mới, tiếng Việt và ảnh không có tài liệu. Không coi phần này đã hoàn thành.
 - Audit 19/11/2026 ở `artifacts/scanner_dev/scanner_quality_20261119/` phát hiện crop mất khối chữ: 864/1.583 hộp từ được giữ đủ trên 8 trang FUNSD. Không coi ảnh accepted là giữ đủ nội dung. OCR tăng cường tốt hơn trên hai ảnh cũ; 6 ROI âm bị từ chối nhưng chưa phải tập độc lập. Sai số góc báo cáo dùng ghép chu kỳ trong `additional_metrics.json`, không dùng khoảng cách theo chỉ số đỉnh thô của summary gốc.
+
+- Chốt OCR 22/11/2026: RapidOCR là mặc định CLI và process_image(); --ocr-engine tesseract là đối chứng. ocr/layout.py gom khung cùng hàng form hoặc chia cột XY-cut, không dùng nhãn và không sửa chữ. text_raw.txt giữ đầu ra gốc, text.txt đã sắp xếp; layout.fields chỉ là liên kết ứng viên. --ocr-layout auto/form/columns/plain. Không coi CER/WER vùng FUNSD là điểm khôi phục bố cục hay form; 30 trang validation đạt RapidOCR 6,80%/28,65% so với Tesseract 19,41%/42,29%, chưa phải test độc lập.
 
 ## Phân chia trách nhiệm mã nguồn
 

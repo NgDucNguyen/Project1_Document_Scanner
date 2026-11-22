@@ -1,8 +1,8 @@
 # Mục lục tài liệu
 
-**Cập nhật 19/11/2026:** báo cáo MD/Word đã bổ sung scan riêng, chọn vùng chữ chính khi thiếu góc, nắn phối cảnh dự phòng, kiểm tra chất lượng và làm rõ ảnh. Pipeline OCR đã gọi chung scanner. Đã chấm test cuối DocAligner: 4.201/4.202 đạt IoU ≥ 0,9, mean IoU 0,9889; mục 3.6 có bảng kiểm định bổ sung: đo lại OCR hai ảnh, thử từ chối và phát hiện lỗi crop mất khối chữ trên FUNSD. Chưa hoàn tất đánh giá độc lập.
+**Cập nhật 22/11/2026:** báo cáo MD/Word đã đồng bộ phần chọn hướng đọc, sửa crop mất mục 3 và thử RapidOCR trên ba ảnh chụp cùng trang. Đã chốt nhánh RapidOCR đọc ảnh màu sau cắt/nắn; `scan.png` tăng cường chỉ để xem. Mục 4.1–4.2 giải thích kết quả đối chiếu hai đầu vào, vai trò từng file và các giới hạn. Chưa có CER/WER cho ba ảnh mới; RapidOCR đã được chọn làm mặc định CLI; Tesseract/FUNSD giữ để đối chứng. Điểm test DocAligner 4.201/4.202 (99,98%), mean IoU 0,9889 và audit mục 3.6 là mốc ngày 19/11, chưa đo lại cho luồng mới.
 
-Báo cáo đã sắp theo khung báo cáo tuần cũ, có 6 ca minh họa Canny/Otsu đối chiếu DocAligner đặt ngay sau phân tích từng lỗi; thêm 2 ví dụ khung và heatmap trong mục DocAligner; hình trước/sau nằm trong mục làm rõ ảnh, không có phần minh họa riêng. Bản hiện tại dùng chuẩn bị buổi báo cáo tuần tới, chỉ ghi kết quả đã có đến ngày 19/11/2026.
+Báo cáo giữ phần Hustack người dùng đã sửa trong Word (W8), 6 ca minh họa Canny/Otsu đối chiếu DocAligner, 2 ví dụ khung/heatmap và hình trước/sau ở đúng nội dung phân tích. Nội dung mới bổ sung đến 22/11/2026; không coi các kế hoạch tiếp theo là đã hoàn thành.
 
 Chỉ cần mở:
 

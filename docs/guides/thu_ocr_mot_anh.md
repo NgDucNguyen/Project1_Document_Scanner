@@ -10,9 +10,21 @@ Scanner đã thêm chọn hướng đọc 0/90/180/270 độ trước detect/cro
 python -X utf8 src/document_scanner/pipeline.py --image "data/raw/thu_ocr/ten_anh.jpg" --ocr-engine rapidocr
 ```
 
-Xem ảnh ở `scan.png`, chữ ở `text.txt`, các dòng đọc được ở `ocr.json` trong thư mục pipeline mới in trên terminal. Engine này dùng ảnh màu trước tăng cường; bản làm đậm vẫn được giữ để xem. Nó cũng cung cấp khung dòng cho nhánh crop dự phòng, nên crop có thể khác luồng Tesseract. Ba ảnh mới cùng trang "In the Evening" đã chạy được, nhưng vẫn có từ sai/dòng yếu; chưa có TXT kiểm chứng nên chưa tính CER/WER. Mặc định Tesseract/FUNSD không đổi. Xem README để cài môi trường RapidOCR trên máy khác.
+Xem ảnh ở `scan.png`, chữ ở `text.txt`, các dòng đọc được ở `ocr.json` trong thư mục pipeline mới in trên terminal. Engine này dùng ảnh màu trước tăng cường; bản làm đậm vẫn được giữ để xem. Nó cũng cung cấp khung dòng cho nhánh crop dự phòng, nên crop có thể khác luồng Tesseract. Ba ảnh mới cùng trang "In the Evening" đã chạy được, nhưng vẫn có từ sai/dòng yếu; chưa có TXT kiểm chứng nên chưa tính CER/WER. RapidOCR hiện là mặc định; dùng --ocr-engine tesseract để đối chứng. Xem README để cài môi trường RapidOCR trên máy khác.
 
-**Cập nhật 19/11/2026:** ảnh chụp mặc định được DocAligner tìm góc trước khi OCR; cần mô hình ONNX theo [README](../../README.md). Muốn đối chứng Canny/Otsu, thêm `--scanner-method classic`. OCR cuối vẫn là Tesseract/FUNSD. Với `--input-type scan`, chương trình bỏ qua tìm góc và không cần DocAligner.
+**Đã chốt:** không OCR bản `scan.png` làm đậm trong nhánh RapidOCR. Trên cùng ba ảnh, bản màu giữ dòng tốt hơn; ở ảnh `…5232`, bản tăng cường tách thành 48 mảnh so với 18 dòng của bản màu. Đây là đối chiếu trực quan, không phải đo độ chính xác. Nếu không cần phóng ảnh, OCR đọc thẳng `scan_color.png`; nếu cần, đọc `ocr_input.png` được tạo từ bản màu. Xem `metadata.json` → `ocr_input_image` để biết đúng file đã đọc.
+
+Chạy ba ảnh hiện có trong **Git Bash**:
+
+```bash
+for img in data/raw/thu_ocr/179531*.jpg; do
+  python -X utf8 src/document_scanner/pipeline.py --image "$img" --ocr-engine rapidocr
+done
+```
+
+Ba kết quả đã chạy: `data/processed/pipeline/20261122_130927_617220/` (ảnh …5187), `20261122_131144_824146/` (…5216), `20261122_130914_317728/` (…5232). Đây là các mốc, lần chạy mới sẽ in thư mục mới. File `english_01.txt` hiện là đoạn mẫu khác nội dung “In the Evening”, không dùng nó làm nhãn cho ba ảnh này.
+
+**Cập nhật 19/11/2026:** ảnh chụp mặc định được DocAligner tìm góc trước khi OCR; cần mô hình ONNX theo [README](../../README.md). Muốn đối chứng Canny/Otsu, thêm `--scanner-method classic`. OCR cuối mặc định là RapidOCR; Tesseract/FUNSD là đối chứng. Với `--input-type scan`, chương trình bỏ qua tìm góc và không cần DocAligner.
 
 ## 1. Chuẩn bị ảnh và văn bản chuẩn
 
@@ -84,15 +96,16 @@ Terminal sẽ in đường dẫn đầu ra, ví dụ `data/processed/pipeline/20
 - `scan.png`: ảnh sau nắn; hãy mở ảnh này trước để xem có cắt mất chữ hay chọn nhầm vùng không.
 - `text.txt`: văn bản OCR. Mở và so sánh với ảnh và file chuẩn.
 - `metadata.json`: nguồn ảnh, hash mô hình/mã, cấu hình scan/OCR, cảnh báo và ma trận đổi tọa độ.
-- `ocr.json`: văn bản, các từ/dòng, hộp tọa độ và điểm nội bộ Tesseract; tọa độ tính trên ảnh đầu vào OCR. Điểm tin cậy không phải xác suất đúng.
-- `ocr_input.png`: chỉ xuất khi ảnh nhỏ cần phóng/thêm viền trước OCR; `scan.png` giữ nguyên. Metadata có `T_source_to_ocr` để đối chiếu với ảnh gốc.
+- `scan_color.png`: trong nhánh RapidOCR ảnh chụp, đây là ảnh màu sau cắt/nắn được chọn cho OCR cuối; không phải ảnh chụp gốc chưa xử lý.
+- `ocr.json`: Tesseract xuất từ/dòng và điểm từng từ; RapidOCR xuất khung dòng và điểm dòng, `words` rỗng. Tọa độ tính trên ảnh đầu vào OCR. Điểm không phải độ chính xác; không so thẳng điểm giữa hai engine.
+- `ocr_input.png`: chỉ xuất khi ảnh nhỏ cần phóng/thêm viền. Trong nhánh RapidOCR ảnh chụp, ảnh này được tạo từ `scan_color.png`; `scan.png` tăng cường vẫn dành để xem. Metadata có `T_source_to_ocr` để đối chiếu với ảnh gốc.
 - `evaluation.json`: chỉ có khi truyền `--reference`; chứa CER và WER cùng số phép sửa.
 
 Chương trình cũng in CER và WER ra terminal khi có file chuẩn. Chỉ số càng thấp càng tốt: **CER** tính lỗi theo ký tự, **WER** tính theo từ. Các chỉ số là số phép thêm, xóa và thay chia cho số ký tự hoặc từ trong nhãn, nên đôi khi có thể lớn hơn 100%.
 
 Phép so sánh chuẩn hóa Unicode và gộp khoảng trắng, nhưng vẫn phân biệt chữ hoa, chữ thường và dấu câu. Thứ tự đọc sai, nhãn thiếu nội dung hoặc nhãn khác ảnh đều có thể làm chỉ số tăng. Đây là phép so sánh toàn bộ văn bản một ảnh; không so trực tiếp với các chỉ số đánh giá theo vùng FUNSD trong báo cáo.
 
-Tiếng Anh được cố định mặc định dùng mô hình `models/funsd_english/funsd_eng.traineddata` với PSM 11; bạn không cần chọn giữa các mô hình hay thêm tham số. Sau so sánh PSM 3/4/11 trên 30 trang validation FUNSD, tiếp tục giữ PSM 11. Ảnh nhỏ được phóng tối đa 2 lần, nhắm cạnh dài 1.800 px và thêm viền 12 px; ảnh đủ lớn giữ nguyên. Dùng `--no-ocr-prepare` để đối chứng. PSM 11 có thể làm thay đổi thứ tự, ngắt dòng hoặc đọc thêm ký tự thừa; `ocr.json` giữ các dòng Tesseract phân tích, không dựng lại bảng hoặc thứ tự ngữ nghĩa. Nếu thiếu file mô hình, chương trình báo lỗi để bạn khôi phục mô hình; chương trình không tự chuyển sang mô hình khác.
+Tiếng Anh mặc định dùng RapidOCR với --ocr-layout auto. Dùng --ocr-layout form cho biểu mẫu, columns cho nhiều cột, plain để giữ dòng gốc. text.txt là bản đã sắp xếp; text_raw.txt là bản gốc; ocr.json giữ layout.blocks và layout.fields (các cặp nhãn–giá trị ứng viên, cần kiểm tra). Không dựng lại ô bảng hoặc suy đoán checkbox. Muốn đối chứng Tesseract/funsd_eng/PSM 11, thêm --ocr-engine tesseract. Cách phóng ảnh nhỏ tối đa 2 lần, nhắm cạnh dài 1.800 px và viền 12 px giữ nguyên; --no-ocr-prepare để đối chứng.
 
 ## 5. Nếu tìm góc sai hoặc không tìm thấy trang
 

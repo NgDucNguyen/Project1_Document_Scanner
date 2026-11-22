@@ -1,14 +1,14 @@
 # Báo cáo tiến độ Project 1 Document Scanner
 
 **Sinh viên:** Nguyễn Đức Nguyên — **MSSV:** 202416305
-**Đơn vị:** Đại học Bách khoa Hà Nội — **Cập nhật nội dung:** 19/11/2026
+**Đơn vị:** Đại học Bách khoa Hà Nội — **Cập nhật nội dung:** 22/11/2026
 **Mục đích:** Chuẩn bị trình bày trong buổi báo cáo tuần tới, dựa trên kết quả hiện có. Ngày báo cáo cụ thể chưa chốt.
 
 ## 1 Công việc đã thực hiện
 
 ### Hustack
 
-Giữ nội dung theo báo cáo tuần trước: hoàn thiện các bài thực hành W5 trên Hustack. Chưa bổ sung tiến độ Hustack mới trong lần cập nhật này.
+Hoàn thành tiến độ hustack W8 (giữ nội dung người dùng đã cập nhật trong bản Word).
 
 ### Project 1 Document Scanner
 
@@ -157,6 +157,8 @@ Heatmap là đầu ra mạng, không phải ảnh cạnh Canny hay ảnh Otsu c�
 
 ### 3.4 Cắt vùng chữ dự phòng và giữ nội dung chính
 
+Cập nhật 22/11/2026: anh_thu.png từng mất mục 3 vì chương trình chỉ giữ cụm chữ lớn nhất. Đã nối thêm các đoạn gần theo chiều dọc khi có chồng lấn ngang và nền giấy sáng liên tục; pipeline chạy lại giữ được mục 3 cùng hai dòng cuối. Không gom mọi chữ quanh ảnh. Đây là sửa trên mẫu phát triển; chưa chứng minh đã khắc phục toàn bộ lỗi giữ nội dung của FUNSD.
+
 Luồng chung: ảnh → DocAligner → nắn nếu góc hợp lệ → tìm vùng chữ chính nếu thiếu khung hoặc ảnh nắn không đạt kiểm tra → kiểm tra chất lượng → làm rõ ảnh → lưu kết quả.
 
 `content_scan.py` dùng hộp từ Tesseract làm bằng chứng, kết hợp các cụm nét chữ để chọn vùng có diện tích lớn nhất trong các vùng đủ hỗ trợ. Không dùng hộp bao tất cả từ trên toàn ảnh. Các vùng gần nhau được gom và thêm lề nhỏ; hai vùng lớn gần bằng nhau được cảnh báo. Đây là quy tắc hình học, chưa hiểu ngữ nghĩa trang người dùng muốn chọn.
@@ -228,19 +230,62 @@ Hai ảnh là mẫu phát triển đã có, không phải test độc lập mớ
 
 ### 4.1 Tình hình OCR tiếng Anh
 
-**Bổ sung thử nghiệm 22/11/2026 (bản Markdown; bản Word vẫn là mốc báo cáo 19/11):** ba ảnh chụp cùng trang "In the Evening" có chữ xoay ngang; cấu hình cũ trả chuỗi `HHH/111` ở ảnh đã chạy được. Scanner đã thêm chọn hướng đọc bốn chiều bằng bằng chứng chữ, không ép theo khổ ảnh. Thử RapidOCR 3.10.0/ONNX Runtime 1.32.0 với PP-OCRv6 small đã scan/OCR được cả ba ảnh: khung dòng hỗ trợ hướng/crop, OCR đọc ảnh màu trước tăng cường. Văn bản đã thành đoạn có nghĩa nhưng vẫn có từ sai/dòng yếu, nhất là ảnh chữ nhỏ và có đường đen chạy qua chữ. Không có TXT chuẩn cho ba ảnh này nên chưa công bố CER/WER hoặc độ chính xác; đây là ba lần chụp một trang, không phải tập kiểm thử độc lập. Mô hình có sẵn, chưa tự huấn luyện. Mặc định Tesseract/FUNSD/PSM 11 vẫn giữ nguyên; chưa thay engine chính hay đo lại toàn bộ scanner. Lệnh và đầu ra mới trong README/hướng dẫn OCR. Mốc đối chiếu và cấu hình thử nằm ở `artifacts/ocr/new_photos_20261122/`. [Nguồn RapidOCR](https://github.com/RapidAI/RapidOCR).
+#### Mốc Tesseract ngày 19 tháng 11
 
-Cập nhật OCR tiếng Anh ngày 19/11/2026: giữ Tesseract/funsd_eng và PSM 11 sau so sánh PSM 3, 4, 11 trên cùng 30 trang validation FUNSD. Chuẩn bị riêng ảnh OCR: ảnh nhỏ được phóng tối đa 2 lần, nhắm cạnh dài 1.800 px và thêm viền trắng 12 px; ảnh đủ lớn giữ nguyên. CER validation giảm 21,04% → 19,41%, WER giảm 48,01% → 42,29%. Đây là OCR toàn trang chấm theo vùng nhãn sau nhận dạng; không đo thứ tự đọc toàn trang, từ ngoài vùng nhãn đếm riêng. Mốc 50 trang test lịch sử đã dùng trong phát triển, không dùng để chọn lần chỉnh này.
+Tesseract/funsd_eng và PSM 11 là mốc mặc định trước khi chốt RapidOCR ngày 22/11/2026. Trên 30 trang validation FUNSD, phóng ảnh nhỏ tối đa 2 lần, nhắm cạnh dài 1.800 px và thêm viền trắng 12 px làm CER giảm 21,04% → 19,41%, WER giảm 48,01% → 42,29%. Đây là chấm theo vùng nhãn sau OCR toàn trang; từ ngoài vùng nhãn đếm riêng, chưa đo thứ tự đọc toàn trang. Không dùng kết quả này như điểm của RapidOCR.
 
-Đã chạy thật luồng hiện tại: anh.jpg đạt CER/WER 0%/0%; anh_test_02.jpg đạt 1,06%/7,69%. Hai ảnh có TXT đều là mẫu cũ, không coi là kết quả tổng quát. Đầu ra thêm ocr.json chứa từ, dòng, tọa độ và điểm tin cậy để xem lỗi; không tự sửa từ hoặc dấu câu. Ảnh OCR phóng riêng được lưu ocr_input.png khi cần; scan.png giữ nguyên. 55 kiểm thử đạt; scanner không đổi.
+Hai ảnh cũ có TXT được kiểm tra lại: anh.jpg đạt CER/WER 0%/0%; anh_test_02.jpg đạt 1,06%/7,69%. Đây là mẫu phát triển đã xem, không phải tập kiểm thử độc lập. Lượt so sánh 50 trang test lịch sử đã được dùng trong phát triển, không dùng chọn cấu hình mới.
 
-DBNet đã được thử cho vùng chữ dự phòng nhưng không chọn. Trên 30 trang FUNSD với 4.616 hộp từ, Tesseract giữ 4.595 hộp (99,55%), DBNet kết hợp gom cụm giữ 4.092 hộp (88,65%). Giữ đủ nghĩa là ít nhất 98% diện tích hộp nằm trong crop; crop thất bại tính 0. Kết quả này đánh giá giữ vùng chữ, không phải tỷ lệ đọc đúng chữ.
+#### Thử RapidOCR trên ảnh chụp mới ngày 22 tháng 11
+
+Ba ảnh mới là ba lần chụp cùng trang “In the Evening”. Ảnh nằm ngang khiến OCR cũ trả nhiều ký tự HHH/111. Scanner đã thêm chọn hướng đọc 0/90/180/270 độ bằng bằng chứng chữ; chỉ xoay khi hướng tốt nhất vượt ngưỡng và hơn rõ hướng thứ hai. Không ép tài liệu ngang hợp lệ thành khổ dọc. Cả ba ảnh mới đã tự xoay 90° theo chiều kim đồng hồ và xuất scan/TXT.
+
+Nhánh thử dùng RapidOCR 3.10.0 với ONNX Runtime 1.32.0, mô hình PP-OCRv6 small đã huấn luyện sẵn cho tìm dòng và nhận dạng, cùng bộ phân loại hướng dòng v2.0 đi kèm. Khung dòng hỗ trợ chọn hướng và crop dự phòng; đây không phải khung mép giấy của DocAligner. Chưa tự huấn luyện hoặc tinh chỉnh bộ OCR này. Sau phép đo FUNSD ngày 22/11/2026, em chọn RapidOCR làm mặc định; Tesseract được giữ để đối chứng.
+
+RapidOCR trả được đoạn văn có nghĩa; đối chiếu Tesseract/funsd_eng/PSM 11 trên đúng cùng pixel đầu vào OCR cho thấy Tesseract vẫn tách vụn hoặc trả rỗng ở một ảnh. Đây là nhận xét trực quan. Ba ảnh chưa có TXT chuẩn được kiểm chứng nên chưa công bố CER/WER hoặc phần trăm chính xác. Còn từ sai, dòng yếu và lỗi quanh đường đen xuyên qua chữ; chữ nhỏ/mờ trong nguồn không được phục hồi chỉ bằng phóng ảnh.
+
+#### Chốt đầu vào OCR sau đối chiếu hai bản scan
+
+Đã thử cùng RapidOCR, cùng crop, cùng cách phóng/thêm viền trên bản màu trước tăng cường và bản scan.png đã làm đậm. Bản tăng cường sinh thêm ký tự sai và phân mảnh dòng ở các ảnh này. Số dòng dưới đây chỉ mô tả cách phân đoạn, không phải thước đo độ chính xác.
+
+| Ảnh theo tiền tố tên gốc | Dòng từ ảnh màu | Dòng từ ảnh tăng cường |
+| --- | ---: | ---: |
+| 1795312175187 | 18 | 18 |
+| 1795312175216 | 18 | 21 |
+| 1795312175232 | 18 | 48 |
+
+Đã chốt giữ đầu vào màu cho luồng RapidOCR: ảnh đã cắt/nắn → scan_color.png → chuẩn bị riêng → ocr_input.png khi cần → OCR → text.txt. scan.png là bản tăng cường để xem, không dùng làm đầu vào OCR cuối trong luồng này. Đây là quyết định về đầu vào RapidOCR; nhánh Tesseract đối chứng vẫn đọc theo cách cũ. Không suy rộng rằng tăng cường luôn làm OCR kém hơn: bảng ở mục 3.6 là mốc Tesseract ngày 19/11 trên hai ảnh khác.
+
+Bằng chứng cục bộ: artifacts/ocr/new_photos_20261122/matched_engine_comparison.json; artifacts/ocr/scan_vs_color_20261122_154834/comparison.json. Các lượt đều complete: true. Không có nhãn được truyền vào detector hoặc dùng để tự chọn cấu hình từng ảnh. Nguồn thư viện: https://github.com/RapidAI/RapidOCR.
+
+#### Chốt RapidOCR và gom bố cục biểu mẫu ngày 22 tháng 11
+
+Em chọn RapidOCR làm bộ OCR tiếng Anh mặc định, giữ Tesseract/funsd_eng/PSM 11 làm đối chứng. Trên cùng 30 trang FUNSD validation và cùng ảnh đã chuẩn bị, RapidOCR đạt CER 6,80% và WER 28,65%; Tesseract đạt 19,41% và 42,29%. Cả hai chạy toàn trang; nhãn chỉ dùng gán từ và chấm sau suy luận. 88 từ RapidOCR và 559 từ Tesseract nằm ngoài vùng nhãn được đếm riêng. Đây là validation đã dùng phát triển, chưa đo thứ tự đọc toàn trang hoặc hiểu form.
+
+Luồng hiện tại: ảnh màu sau cắt/nắn → chuẩn bị ảnh → RapidOCR phát hiện và đọc từng dòng → gom bố cục hình học → TXT và JSON. Chế độ auto thử form khi có ít nhất hai nhãn dạng dấu hai chấm; nếu không, thử chia cột XY-cut bằng khoảng trắng. Có thể chọn --ocr-layout form, columns hoặc plain. Không dùng nhãn FUNSD để chia vùng khi chạy.
+
+Biểu mẫu được gom các khung cùng hàng, nhờ đó Date: và 9/3/92 được trình bày thành Date: 9/3/92 trên mẫu 0000971160. Mẫu 716552 giữ DESCRIPTION gần giá trị và các mục DESIGN NO., UPC NO., MATERIAL NO. trên cùng hàng. Văn bản nhiều cột thử đọc hết cột trái rồi sang cột phải. Quy tắc này chưa phải mô hình hiểu cấu trúc bảng; nhiều dòng, ô gộp và checkbox còn cần kiểm chứng.
+
+text.txt lưu bản sắp xếp, text_raw.txt giữ nguyên văn bản OCR gốc. ocr.json giữ các khung dòng, layout.blocks và layout.fields; các cặp nhãn–giá trị chỉ là ứng viên hình học, chưa xác nhận ngữ nghĩa. Không tự sửa chữ, không bỏ dòng điểm thấp, không phục hồi phần crop đã mất. Điểm CER/WER FUNSD ở trên đo trước bước gom bố cục, không dùng làm điểm cải thiện bố cục.
+
+Bằng chứng: artifacts/ocr/funsd_validation_20261122/results.json; code bố cục ở src/document_scanner/ocr/layout.py. Có 69 kiểm thử đạt sau cập nhật, gồm giữ dòng, tách cột, ghép đúng hàng form và lưu bản OCR gốc. Các kết quả SmartDoc và scan audit trước đó giữ nguyên phạm vi đo.
 
 ### 4.2 Scanner riêng và khả năng nối OCR
 
-Lệnh scan riêng gọi `scan_document()` và trả ảnh cùng metadata. `pipeline.py` đã gọi chung hàm này rồi chuyển ảnh sang `recognize_image()`. Vì vậy có thể tiếp tục cải thiện OCR mà giữ scanner hiện có. Pipeline bật thêm kiểm tra nội dung `check_content=True`; scan riêng mặc định không bật nên một số ảnh khó có thể có crop khác nhau.
+Scanner vẫn gọi chung scan_document(). Với RapidOCR mặc định, khung dòng OCR có thể hỗ trợ chọn hướng và crop khi DocAligner không đủ góc. Pipeline bật check_content=True; scan riêng dùng Tesseract và mặc định không bật kiểm tra này, nên không bảo đảm hai lệnh luôn chọn cùng crop. Mô hình DocAligner và nhánh Canny/Otsu đối chứng được giữ nguyên; chưa đo lại toàn bộ chất lượng hoặc tốc độ scanner sau bổ sung hướng trang.
 
-Tesseract trong nhánh dự phòng chỉ lấy vị trí hộp từ; bước OCR cuối mới xuất văn bản. Mô hình tiếng Anh hiện tại chưa hoàn thiện cho chữ viết tay tiếng Việt hoặc công thức toán. Kết quả OCR hiện tại và giới hạn được ghi ở mục 4.1; chưa mở rộng sang tiếng Việt hoặc tái tạo cấu trúc bảng. Với FUNSD/ảnh đã scan sẵn phải dùng --input-type scan để không chạy lại cắt trang.
+Luồng ảnh chụp hiện thử: chọn hướng đọc → DocAligner → nắn khung hoặc chọn vùng nội dung dự phòng → giữ ảnh màu sau cắt/nắn → chuẩn bị ảnh OCR → RapidOCR → văn bản và khung dòng. Bản tăng cường để xem được tạo từ cùng ảnh màu, tách khỏi đầu vào OCR.
+
+| File đầu ra | Vai trò trong luồng RapidOCR ảnh chụp |
+| --- | --- |
+| scan_color.png | Ảnh màu đã cắt/nắn, trước làm đậm; nguồn cho OCR cuối |
+| scan.png | Ảnh tăng cường để người dùng xem và kiểm tra crop |
+| ocr_input.png | Bản màu được phóng/thêm viền khi cần; nếu không phóng, OCR đọc scan_color.png |
+| text.txt | Nội dung OCR thực tế, giữ cả từ sai, không tự sửa hoặc thêm chữ |
+| ocr.json | Khung dòng, điểm dòng, phiên bản và hash mô hình; không có hộp từng từ của RapidOCR |
+| metadata.json | Nguồn ảnh, engine, hướng xoay, cấu hình, cảnh báo và ma trận đổi tọa độ |
+
+Điểm dòng không phải độ chính xác. word_count của RapidOCR chỉ đếm theo khoảng trắng; words rỗng vì bộ đọc hiện xuất khung dòng. Giữ dòng điểm thấp và gắn cảnh báo để kiểm tra, không tự xóa hay viết lại nội dung. Bộ kiểm thử hiện có 69 ca đạt; hai ảnh cũ có TXT giữ kết quả như trên. Chưa đánh giá đầy đủ tiếng Việt, chữ viết tay, công thức hoặc khôi phục bảng. Với FUNSD/ảnh đã scan sẵn, dùng --input-type scan để bỏ scanner.
 
 ### 4.3 Việc cần làm tiếp
 
@@ -287,6 +332,8 @@ python -X utf8 src/document_scanner/pipeline.py --image "data/raw/thu_ocr/anh.jp
 | Kiểm tra và làm rõ ảnh | `scanner/appearance.py`, `configs/scan.json` |
 | Nắn phối cảnh | `src/document_scanner/scanner/geometry.py` |
 | Nối nhận dạng chữ | `src/document_scanner/pipeline.py`, `ocr/` |
+| Chọn hướng đọc | `scanner/orientation.py` |
+| OCR học sâu thử riêng | `ocr/rapid_reader.py` |
 
 Các đường dẫn rút gọn `scanner/`, `ocr/` tính từ `src/document_scanner/`. Hai lượt detect gốc ở `artifacts/scanner_dev/full_detection_v1/` và `docaligner_t8_full/`; lượt chấm cuối ở `artifacts/scanner_dev/docaligner_final_20261119/`. Bảng tổng hợp ở `docs/results/scanner_comparison.csv`. Sáu ca minh họa có chỉ mục trong `artifacts/scanner_dev/comparison/index.csv`; các file `_scans.jpg` cho xem kết quả sau nắn. Chỉ kết luận từ lượt có `complete: true`.
 
